@@ -65,11 +65,10 @@ yarn run qanban-node Alice 3000
 yarn run qanban-node Bob 4000
 ```
 
-Next, we impersonate Alice and propose a todo item for Bob to paint her
-fence. Since Carol is an expert on judging the quality of paint, Alice
-also wants her approval before the todo can be considerer done. Thus Alice
-navigates to her frontend at http://localhost:3000 and finds a screen looking
-like
+Next, we impersonate Alice and propose a todo item for Bob to bake her a
+cake. Since Carol is a cake lover too, Alice also wants her approval before
+the todo can be considerer done. Thus Alice navigates to her frontend at
+http://localhost:3000 and finds a screen looking like:
 
 ![Alice' start screen](images/alice-start.png)
 

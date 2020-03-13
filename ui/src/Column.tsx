@@ -1,6 +1,7 @@
 import React from 'react';
 import { Grid, Header, Card, Button, List, SemanticICONS } from 'semantic-ui-react';
 import { Id, ContractState, Contract, Party, UpdateCommand } from 'qanban-types';
+import ProposalButton from './ProposalButton';
 
 type Props = {
   participant: Party | undefined;
@@ -82,39 +83,39 @@ const ACTIONS: Record<ContractState, Action[]> = {
     callback: simpleCallback("finish"),
   }],
   "IN_REVIEW": [{
-    label: "Approve",
-    isActive: (participant, contract) => contract.missingApprovals.includes(participant),
-    callback: simpleCallback("approve"),
-  }, {
     label: "Reject",
     isActive: (participant, contract) => contract.missingApprovals.includes(participant),
     callback: rejectCallback(),
+  }, {
+    label: "Accept",
+    isActive: (participant, contract) => contract.missingApprovals.includes(participant),
+    callback: simpleCallback("approve"),
   }],
   "DONE": [],
-}
+};
+
+const ICONS: Record<ContractState, (party: Party, contract: Contract) => SemanticICONS> = {
+  "PROPOSED": (party, contract) =>
+    contract.missingAcceptances.includes(party) ? "question circle outline" : "check circle outline",
+  "ACCEPTED": (party, contract) =>
+    party === contract.assignee ? "play circle outline" : "circle outline",
+  "IN_PROGRESS": (party, contract) =>
+    party === contract.assignee ? "stop circle outline" : "circle outline",
+  "IN_REVIEW": (party, contract) =>
+    contract.missingApprovals.includes(party) ? "question circle outline" : "check circle outline",
+  "DONE": () => "check circle outline",
+};
 
 const Column: React.FC<Props> = props => {
   const contracts = props.contracts.filter(contract => contract.contract.state === props.state);
   return (
     <Grid.Column>
       <Header textAlign="center">{TITLES[props.state]}</Header>
+      {props.state !== "PROPOSED" ? null : <ProposalButton reload={props.reload} />}
       {contracts.map(({id, contract}) => {
-
-        let icon: (party: Party) => SemanticICONS = () => "circle outline";
-        switch (props.state) {
-          case "PROPOSED": {
-            const missingAcceptances = new Set<Party>(contract.missingAcceptances);
-            icon = (party: Party) => missingAcceptances.has(party) ? "question circle outline" : "check circle outline";
-            break;
-          }
-          case "IN_REVIEW": {
-            const missingApprovals = new Set<Party>(contract.missingApprovals);
-            icon = (party: Party) => missingApprovals.has(party) ? "question circle outline" : "check circle outline";
-            break;
-          }
-        }
         const actions = ACTIONS[props.state].filter(action =>
           props.participant !== undefined && action.isActive && action.isActive(props.participant, contract));
+        const icon = (party: Party) => ICONS[contract.state](party, contract);
 
         return (
           <Card key={id}>
@@ -123,10 +124,10 @@ const Column: React.FC<Props> = props => {
             </Card.Content>
             <Card.Content>
               <List>
-                <List.Item icon={icon(contract.proposer)} content={`proposer: ${contract.proposer}`} />
-                <List.Item icon={icon(contract.assignee)} content={`assignee: ${contract.assignee}`} />
+                <List.Item icon={icon(contract.proposer)} content={`${contract.proposer} (proposer)`} />
+                <List.Item icon={icon(contract.assignee)} content={`${contract.assignee} (assignee)`} />
                 {contract.reviewers.map(reviewer => (
-                  <List.Item key={reviewer} icon={icon(reviewer)} content={`reviewer: ${reviewer}`} />
+                  <List.Item key={reviewer} icon={icon(reviewer)} content={`${reviewer} (reviewer)`} />
                 ))}
               </List>
             </Card.Content>
@@ -137,8 +138,8 @@ const Column: React.FC<Props> = props => {
                 )}
               </List>
             </Card.Content>}
-            {actions.length === 0 ? null : <Card.Content extra>
-              <Button.Group fluid vertical>
+            {actions.length === 0 ? null :
+              <Button.Group attached="bottom" size="small">
                 {actions.map(action => (
                   <Button
                     key={action.label}
@@ -146,8 +147,7 @@ const Column: React.FC<Props> = props => {
                     content={action.label}
                   />
                 ))}
-              </Button.Group>
-            </Card.Content>}
+              </Button.Group>}
           </Card>
         );
       })}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Container, Header, Button, Modal, Form } from 'semantic-ui-react';
-import { Id, Contract, idDecoder, contractDecoder, allContractStates, partyDecoder, Party, CreateCommand, createCommandDecoder } from 'qanban-types';
+import { Grid, Container, Header } from 'semantic-ui-react';
+import { Id, Contract, idDecoder, contractDecoder, allContractStates, partyDecoder, Party } from 'qanban-types';
 import * as jtv from '@mojotech/json-type-validation';
 import Column from './Column';
 
@@ -54,74 +54,18 @@ const App: React.FC = () => {
     }
   }, [reload]);
 
-  const [editingProposal, setEditingProposal] = useState(false);
-  const [description, setDescription] = useState('');
-  const [assignee, setAssignee] = useState('');
-  const [reviewers, setReviewers] = useState('');
-
-  const handleSubmitProposal = async () => {
-    const command: CreateCommand = createCommandDecoder().runWithException({
-      type: "propose",
-      description,
-      assignee,
-      reviewers: reviewers.split(',').map(reviewer => reviewer.trim()),
-    });
-    const res = await fetch('/api/command', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(command),
-    });
-    if (res.ok) {
-      setEditingProposal(false);
-      reload();
-    } else {
-      console.error(`command failed with status ${res.status}:`, res.body);
-    }
-  };
 
   return (
     <Container>
-      <Header>Hello {participant ?? '???'}</Header>
-      <Modal
-        trigger={<Button onClick={() => setEditingProposal(true)}>Propose Todo</Button>}
-        open={editingProposal}
-        onClose={() => setEditingProposal(false)}
+      <Header
+        id="qanban-title"
+        as="h1"
+        size="huge"
+        textAlign="center"
       >
-        <Modal.Header>Propose a new todo item</Modal.Header>
-        <Modal.Content>
-          <Form onSubmit={handleSubmitProposal}>
-            <Form.Field>
-              <label>Description</label>
-              <input
-                placeholder='Description'
-                value={description}
-                onChange={event => setDescription(event.currentTarget.value)}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Assignee</label>
-              <input
-                placeholder='Assignee'
-                value={assignee}
-                onChange={event => setAssignee(event.currentTarget.value)}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Reviewers (separate multiple by commas)</label>
-              <input
-                placeholder='Reviewers'
-                value={reviewers}
-                onChange={event => setReviewers(event.currentTarget.value)}
-              />
-            </Form.Field>
-            <Button type="submit">Submit</Button>
-            <Button type="button" onClick={() => setEditingProposal(false)}>Cancel</Button>
-          </Form>
-        </Modal.Content>
-      </Modal>
-      <Grid columns="5">
+        {participant  ?? '???'}'s Qanban Board
+      </Header>
+      <Grid columns="5" divided>
         {allContractStates.map(state => (
           <Column
             key={state}
