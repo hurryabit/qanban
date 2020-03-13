@@ -82,13 +82,13 @@ const ACTIONS: Record<ContractState, Action[]> = {
     callback: simpleCallback("finish"),
   }],
   "IN_REVIEW": [{
-    label: "Reject",
-    isActive: (participant, contract) => contract.missingApprovals.includes(participant),
-    callback: rejectCallback(),
-  }, {
     label: "Approve",
     isActive: (participant, contract) => contract.missingApprovals.includes(participant),
     callback: simpleCallback("approve"),
+  }, {
+    label: "Reject",
+    isActive: (participant, contract) => contract.missingApprovals.includes(participant),
+    callback: rejectCallback(),
   }],
   "DONE": [],
 }
@@ -138,7 +138,7 @@ const Column: React.FC<Props> = props => {
               </List>
             </Card.Content>}
             {actions.length === 0 ? null : <Card.Content extra>
-              <Button.Group fluid>
+              <Button.Group fluid vertical>
                 {actions.map(action => (
                   <Button
                     key={action.label}

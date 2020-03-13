@@ -194,7 +194,7 @@ function Ledger(dbfile: string): Ledger {
 
 const argv = process.argv;
 if (argv.length !== 4) {
-  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <api-port>`);
+  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <frontend-port>`);
   process.exit(1);
 }
 
