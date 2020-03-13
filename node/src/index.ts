@@ -14,6 +14,7 @@ type Ledger = Readonly<{
 }>
 
 const sendMessage = (socket: net.Socket, message: unknown) => {
+  console.log('outgoing message:', message);
   socket.write(JSON.stringify(message) + '\n');
 }
 
@@ -75,7 +76,7 @@ function updateContract(contract: Contract, sender: Party, message: UpdateMessag
     }
     case "approve": {
       assertState("IN_REVIEW");
-      const reviewerIndex = contract.reviewers.indexOf(sender);
+      const reviewerIndex = contract.missingApprovals.indexOf(sender);
       assertSender(reviewerIndex !== -1);
       contract.missingApprovals.splice(reviewerIndex, 1);
       if (contract.missingApprovals.length === 0) {
@@ -206,10 +207,12 @@ const socket = net.createConnection({ port: 7475 });
 
 socket.on('connect', () => {
   console.log('connected to router');
-  socket.on('data', data => {
-    const json = JSON.parse(data.toString());
-    console.log('incoming message:', json);
-    handleMessage(ledger, json);
+  socket.on('data', datas => {
+    for (const data of datas.toString().split('\n').filter(data => data !== '')) {
+      const json = JSON.parse(data.toString());
+      console.log('incoming message:', json);
+      handleMessage(ledger, json);
+    }
   });
   socket.on('close', hadError => {
     process.exit(hadError ? 1 : 0);

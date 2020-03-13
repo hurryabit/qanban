@@ -45,6 +45,14 @@ const App: React.FC = () => {
     load();
   }, [reloadCount]);
   const reload = useCallback(() => setReloadCount(count => count+1), []);
+  useEffect(() => {
+    const intervalId = setInterval(reload, 1000);
+    console.log('started internval');
+    return () => {
+      console.log('cleared interval');
+      clearInterval(intervalId);
+    }
+  }, [reload]);
 
   const [editingProposal, setEditingProposal] = useState(false);
   const [description, setDescription] = useState('');
@@ -113,7 +121,6 @@ const App: React.FC = () => {
           </Form>
         </Modal.Content>
       </Modal>
-      <Button onClick={reload}>Reload</Button>
       <Grid columns="5">
         {allContractStates.map(state => (
           <Column

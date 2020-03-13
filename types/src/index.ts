@@ -61,10 +61,10 @@ function merge<A extends object, B extends object>(
 }
 
 export const idDecoder = (): jtv.Decoder<Id> =>
-jtv.string().where(s => /[a-z][a-z0-9]*-[0-9a-f-]+/.test(s), 'expected an id').map(s => s as Id);
+jtv.string().where(s => /[A-Za-z][A-Za-z0-9]*-[0-9a-f-]+/.test(s), 'expected an id').map(s => s as Id);
 
 export const partyDecoder = (): jtv.Decoder<Party> =>
-  jtv.string().where(s => /[a-z][a-z0-9]*/.test(s), 'expected a party').map(s => s as Party);
+  jtv.string().where(s => /[A-Za-z][A-Za-z0-9]*/.test(s), 'expected a party').map(s => s as Party);
 
 export const contractDecoder = () => jtv.object({
   state: jtv.oneOf<ContractState>(...allContractStates.map(state => jtv.constant(state))),

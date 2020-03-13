@@ -40,33 +40,32 @@ const sendMessage = (socket: net.Socket, message: unknown) => {
 }
 
 const server = net.createServer(socket => {
-  const address = JSON.stringify({host: socket.remoteAddress, port: socket.remotePort});
+  const address = `${socket.remoteAddress}:${socket.remotePort}`;
   let sender: string | undefined = undefined;
   console.log(`new connection from ${address}`);
-  // sendMessage(socket, {info: 'Welcome to chat server'});
-  socket.on('data', data => {
-    try {
-      const message = JSON.parse(data.toString());
-      if (sender === undefined) {
-        assertIsLoginMessage(message);
-        sender = message.login;
-        if (sender in clients) {
-          const client = clients[sender];
-          if (client instanceof net.Socket) {
-            throw Error(`User ${sender} is already connected.`);
+  socket.on('data', datas => {
+    for (const data of datas.toString().split('\n').filter(data => data !== '')) {
+      try {
+        const message = JSON.parse(data);
+        if (sender === undefined) {
+          assertIsLoginMessage(message);
+          sender = message.login;
+          if (sender in clients) {
+            const client = clients[sender];
+            if (client instanceof net.Socket) {
+              throw Error(`User ${sender} is already connected.`);
+            }
+            while (client.length > 0) {
+              sendMessage(socket, client.shift());
+            }
           }
-          while (client.length > 0) {
-            sendMessage(socket, client.shift());
-          }
-        }
-        clients[sender] = socket;
-      } else {
-        assertIsMessageWithReceiver(message);
-        const receiver = message.receiver;
-        if (!(receiver in clients)) {
-          const warning = `Unknown receiver "${receiver}". Dropping message.`;
-          sendMessage(socket, {warning});
+          clients[sender] = socket;
         } else {
+          assertIsMessageWithReceiver(message);
+          const receiver = message.receiver;
+          if (!(receiver in clients)) {
+            clients[receiver] = [];
+          }
           const receiverClient = clients[receiver];
           delete message.receiver;
           message.sender = sender;
@@ -76,10 +75,10 @@ const server = net.createServer(socket => {
             receiverClient.push(message as unknown as MessageWithSender);
           }
         }
+      } catch (error) {
+        sendMessage(socket, {error: error.toString()});
+        socket.end();
       }
-    } catch (error) {
-      sendMessage(socket, {error: error.toString()});
-      socket.end();
     }
   });
   socket.on('error', error => {
@@ -94,5 +93,5 @@ const server = net.createServer(socket => {
 });
 
 server.listen(7475, 'localhost', () => {
-  console.log('server up and running');
+  console.log('router up and running');
 });

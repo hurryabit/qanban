@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "types"
+		},
+		{
+			"path": "node"
+		},
+		{
+			"path": "ui"
+		},
+		{
+			"path": "router"
+		}
+	]
+}
