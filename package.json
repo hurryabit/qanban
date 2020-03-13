@@ -2,6 +2,8 @@
   "private": true,
   "workspaces": [
     "router",
-    "node"
+    "types",
+    "node",
+    "ui"
   ]
 }

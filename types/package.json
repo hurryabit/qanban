@@ -1,33 +1,23 @@
 {
   "private": true,
-  "name": "qanban-node",
+  "name": "qanban-types",
   "version": "0.0.1",
   "license": "Apache-2.0",
-  "bin": "bin/index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "start": "ts-node src/index.ts",
     "build": "tsc --build",
     "build:watch": "tsc --build --watch",
     "test": "true",
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
-    "@mojotech/json-type-validation": "^3.1.0",
-    "better-sqlite3": "^6.0.1",
-    "express": "^4.17.1",
-    "node": "^13.10.1",
-    "qanban-types": "0.0.1",
-    "uuid": "^7.0.2"
+    "@mojotech/json-type-validation": "^3.1.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^5.4.0",
-    "@types/express": "^4.17.3",
-    "@types/node": "^13.9.0",
-    "@types/uuid": "^7.0.0",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0",
-    "ts-node": "^8.6.2",
     "typescript": "~3.8.3"
   },
   "eslintConfig": {

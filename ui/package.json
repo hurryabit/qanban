@@ -1,37 +1,36 @@
 {
   "private": true,
-  "name": "qanban-node",
+  "name": "qanban-ui",
   "version": "0.0.1",
-  "license": "Apache-2.0",
-  "bin": "bin/index.js",
-  "scripts": {
-    "start": "ts-node src/index.ts",
-    "build": "tsc --build",
-    "build:watch": "tsc --build --watch",
-    "test": "true",
-    "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
-  },
   "dependencies": {
     "@mojotech/json-type-validation": "^3.1.0",
-    "better-sqlite3": "^6.0.1",
-    "express": "^4.17.1",
-    "node": "^13.10.1",
     "qanban-types": "0.0.1",
-    "uuid": "^7.0.2"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^5.4.0",
-    "@types/express": "^4.17.3",
-    "@types/node": "^13.9.0",
-    "@types/uuid": "^7.0.0",
-    "@typescript-eslint/eslint-plugin": "^2.23.0",
-    "@typescript-eslint/parser": "^2.23.0",
-    "eslint": "^6.8.0",
-    "ts-node": "^8.6.2",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0",
+    "react-scripts": "3.4.0",
+    "semantic-ui-css": "^2.4.1",
+    "semantic-ui-react": "^0.88.2",
     "typescript": "~3.8.3"
   },
+  "devDependencies": {
+    "@types/node": "^12.0.0",
+    "@types/react": "^16.9.0",
+    "@types/react-dom": "^16.9.0",
+    "@typescript-eslint/eslint-plugin": "^2.23.0",
+    "@typescript-eslint/parser": "^2.23.0",
+    "eslint": "^6.8.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 src/"
+  },
+  "proxy": "http://localhost:7501/",
   "eslintConfig": {
     "extends": [
+      "react-app",
       "eslint:recommended",
       "plugin:@typescript-eslint/eslint-recommended",
       "plugin:@typescript-eslint/recommended",
@@ -49,5 +48,17 @@
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-inferrable-types": "off"
     }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
