@@ -1,0 +1,30 @@
+version: 2.1
+jobs:
+  build:
+    working_directory: ~/qanban
+    docker:
+      - image: circleci/node:13.10
+    steps:
+      - checkout
+      - run:
+          name: Info
+          command: yarn --version
+      - restore_cache:
+          name: Restore cache
+          key: node-v1-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install
+          command: yarn install --frozen-lockfile
+      - save_cache:
+          name: Save cache
+          key: node-v1-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+            - client/node_modules
+            - server/node_modules
+      - run:
+          name: Build
+          command: yarn workspaces run build
+      - run:
+          name: Lint
+          command: yarn workspaces run lint
