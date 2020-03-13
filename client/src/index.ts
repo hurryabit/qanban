@@ -1,8 +1,14 @@
 import * as jtv from '@mojotech/json-type-validation';
 import net from 'net';
-import readline from 'readline';
 import sqlite3 from 'better-sqlite3';
 import { v4 as uuidV4 } from 'uuid';
+import express from 'express';
+
+declare global {
+  interface JSON {
+    parse(text: string, reviver?: (this: unknown, key: string, value: unknown) => unknown): unknown;
+  }
+}
 
 const IdTag: unique symbol = Symbol();
 const PartyTag: unique symbol = Symbol();
@@ -23,14 +29,14 @@ type Contract = {
   missingApprovals: Party[];
 }
 
-type CreateMessage =
-  | {
-      type: "propose";
-      description: string;
-      proposer: Party;
-      assignee: Party;
-      reviewers: Party[];
-    }
+type CreateCommand = {
+  type: "propose";
+  description: string;
+  assignee: Party;
+  reviewers: Party[];
+}
+
+type CreateMessage = CreateCommand & { proposer: Party }
 
 type UpdateMessage =
   | { type: "accept" }
@@ -39,11 +45,16 @@ type UpdateMessage =
   | { type: "reject"; comment: string }
   | { type: "approve" }
 
+type UpdateCommand = UpdateMessage & { id: Id }
+
 type Message = CreateMessage | UpdateMessage
+
+type Command = CreateCommand | UpdateCommand
 
 type Ledger = Readonly<{
   list(): Id[];
   fetch(id: Id): Contract | undefined;
+  fetchAll(): {id: Id; contract: Contract}[];
   create(id: Id, contract: Contract): void;
   update(id: Id, contract: Contract): void;
 }>
@@ -51,14 +62,18 @@ type Ledger = Readonly<{
 const allContractStates: ContractState[] =
   ["PROPOSED", "ACCEPTED", "IN_PROGRESS", "IN_REVIEW", "DONE"];
 
+function merge<A extends object, B extends object>(
+  aDecoder: jtv.Decoder<A>,
+  bDecoder: jtv.Decoder<B>,
+): jtv.Decoder<A & B> {
+  return aDecoder.andThen(a => bDecoder.map(b => ({...a, ...b})));
+}
+
 const idDecoder = (): jtv.Decoder<Id> =>
 jtv.string().where(s => /[a-z][a-z0-9]*-[0-9a-f-]+/.test(s), 'expected an id').map(s => s as Id);
 
 const partyDecoder = (): jtv.Decoder<Party> =>
   jtv.string().where(s => /[a-z][a-z0-9]*/.test(s), 'expected a party').map(s => s as Party);
-
-
-const withIdDecoder = () => jtv.object({id: idDecoder()}).map(message => message.id);
 
 const contractDecoder = () => jtv.object({
   state: jtv.oneOf<ContractState>(...allContractStates.map(state => jtv.constant(state))),
@@ -71,14 +86,19 @@ const contractDecoder = () => jtv.object({
   missingApprovals: jtv.array(partyDecoder()),
 });
 
-const messageDecoder = () => jtv.oneOf<Message>(
-  jtv.object({
-    type: jtv.constant("propose"),
-    description: jtv.string(),
-    proposer: partyDecoder(),
-    assignee: partyDecoder(),
-    reviewers: jtv.array(partyDecoder()),
-  }),
+const createCommandDecoder = (): jtv.Decoder<CreateCommand> => jtv.object({
+  type: jtv.constant("propose"),
+  description: jtv.string(),
+  assignee: partyDecoder(),
+  reviewers: jtv.array(partyDecoder()),
+});
+
+const createMessageDecoder = (): jtv.Decoder<CreateMessage> => merge(
+  createCommandDecoder(),
+  jtv.object({proposer: partyDecoder()}),
+);
+
+const updateMessageDecoder = () => jtv.oneOf<UpdateMessage>(
   jtv.object({type: jtv.constant("accept")}),
   jtv.object({type: jtv.constant("start")}),
   jtv.object({type: jtv.constant("finish")}),
@@ -87,6 +107,21 @@ const messageDecoder = () => jtv.oneOf<Message>(
     comment: jtv.string(),
   }),
   jtv.object({type: jtv.constant("approve")}),
+);
+
+const updateCommandDecoder = (): jtv.Decoder<UpdateCommand> => merge(
+  updateMessageDecoder(),
+  jtv.object({id: idDecoder()}),
+);
+
+const messageDecoder = () => jtv.oneOf<Message>(
+  createMessageDecoder(),
+  updateMessageDecoder(),
+);
+
+const commandDecoder = () => jtv.oneOf<Command>(
+  createCommandDecoder(),
+  updateCommandDecoder(),
 );
 
 const sendMessage = (socket: net.Socket, message: unknown) => {
@@ -199,9 +234,8 @@ function updateLedger(ledger: Ledger, id: Id, sender: Party, message: Message): 
   }
 }
 
-function handleMessage(ledger: Ledger, data: Buffer) {
+function handleMessage(ledger: Ledger, rawMessage: unknown) {
   try {
-    const rawMessage = JSON.parse(data.toString());
     const {id, sender, message} = jtv.object({
       id: idDecoder(),
       sender: partyDecoder(),
@@ -209,17 +243,20 @@ function handleMessage(ledger: Ledger, data: Buffer) {
     }).runWithException(rawMessage);
     updateLedger(ledger, id, sender, message);
   } catch (error) {
-    console.error('failed to handle message', data, error);
+    console.error('failed to handle message', rawMessage, error);
   }
 }
 
-function handleCommand(ledger: Ledger, socket: net.Socket, participant: Party, rawCommand: unknown) {
-  const message = messageDecoder().runWithException(rawCommand);
+function handleCommand(ledger: Ledger, socket: net.Socket, participant: Party, command: Command) {
   let id: Id;
-  if (message.type === "propose") {
+  let message: Message;
+  if (command.type === "propose") {
     id = idDecoder().runWithException(`${participant}-${uuidV4()}`);
+    message = {...command, proposer: participant};
   } else {
-    id = withIdDecoder().runWithException(rawCommand);
+    id = command.id;
+    delete command.id;
+    message = {...command};
   }
   const contract = updateLedger(ledger, id, participant, message);
   const receivers = stakeholders(contract);
@@ -227,28 +264,6 @@ function handleCommand(ledger: Ledger, socket: net.Socket, participant: Party, r
   receivers.forEach(receiver => {
     sendMessage(socket, {receiver, id, message});
   });
-}
-
-function handleInput(ledger: Ledger, socket: net.Socket, participant: Party, input: string) {
-  try {
-    if (input === 'list') {
-      console.log('ids of all contracts:')
-      ledger.list().forEach(id => console.log(`- ${id}`));
-    } else if (input.startsWith('fetch ')) {
-      const id = idDecoder().runWithException(input.slice(6).trim());
-      const contract = ledger.fetch(id);
-      if (contract === undefined) {
-        throw Error(`unknown id ${id}`);
-      }
-      console.log(JSON.stringify(contract, undefined, 2));
-    } else if (input.startsWith('command ')) {
-      handleCommand(ledger, socket, participant, JSON.parse(input.slice(8)));
-    } else {
-      throw Error(`bad input: ${input}`);
-    }
-  } catch (error) {
-    console.error('failed to handle input', input, error);
-  }
 }
 
 function Ledger(dbfile: string): Ledger {
@@ -260,16 +275,23 @@ function Ledger(dbfile: string): Ledger {
 
   const listStmt = db.prepare("SELECT id FROM contracts");
   const fetchStmt = db.prepare("SELECT contract FROM contracts WHERE id = :id");
+  const fetchAllStmt = db.prepare("SELECT id, contract FROM contracts");
   const createStmt = db.prepare("INSERT INTO contracts (id, contract) VALUES (:id, json(:contract))");
   const updateStmt = db.prepare("UPDATE contracts SET contract = :contract where id = :id");
 
   const list = () => {
-    return listStmt.all().map(row => row.id);
+    return listStmt.all().map(row => idDecoder().runWithException(row.id));
   };
   const fetch = (id: Id) => {
     const row = fetchStmt.get({id});
     return row === undefined ? undefined : contractDecoder().runWithException(JSON.parse(row.contract));
   };
+  const fetchAll = () => {
+    return fetchAllStmt.all().map(row => ({
+      id: idDecoder().runWithException(row.id),
+      contract: contractDecoder().runWithException(JSON.parse(row.contract)),
+    }));
+  }
   const create = (id: Id, contract: Contract) => {
     createStmt.run({id, contract: JSON.stringify(contract)})
   };
@@ -277,38 +299,65 @@ function Ledger(dbfile: string): Ledger {
     updateStmt.run({id, contract: JSON.stringify(contract)});
   };
 
-  return {list, fetch, create, update};
+  return {list, fetch, fetchAll, create, update};
 }
 
-const participant = partyDecoder().runWithException(process.argv[2]);
-const dbfile = process.argv[3];
+const argv = process.argv;
+if (argv.length !== 4) {
+  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <api-port>`);
+  process.exit(1);
+}
 
-const ledger = Ledger(dbfile);
+const participant = partyDecoder().runWithException(argv[2]);
+const apiPort = Number.parseInt(argv[3]);
 
-const terminal = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const ledger = Ledger(`${participant}.db`);
 
 const socket = net.createConnection({port: 7475});
 
-terminal.on('line', input => {
-  // console.log(`input: ${input}`);
-  handleInput(ledger, socket, participant, input);
-  terminal.prompt();
-});
-
 socket.on('connect', () => {
-  console.log('connected');
+  console.log('connected to router');
   socket.on('data', data => {
-    terminal.pause();
-    // console.log(`message: ${data}`);
-    handleMessage(ledger, data);
-    terminal.resume();
+    const json = JSON.parse(data.toString());
+    console.log('incoming message:', json);
+    handleMessage(ledger, json);
   });
   socket.on('close', hadError => {
     process.exit(hadError ? 1 : 0);
   });
   sendMessage(socket, {login: participant});
-  terminal.prompt();
+});
+
+const app = express();
+app.use(express.json());
+
+app.get('/api/whoami', (_req, res) => {
+  res.status(200).contentType('text').send(participant);
+})
+
+app.get('/api/query', (_req, res) => {
+  try {
+    const contracts = ledger.fetchAll();
+    res.status(200).send(contracts);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+app.post('/api/command', (req, res) => {
+  try {
+    console.log('incoming command:', req.body);
+    const command = commandDecoder().runWithException(req.body);
+    handleCommand(ledger, socket, participant, command);
+    res.status(200).send({success: true});
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      error,
+    });
+  }
+});
+
+app.listen(apiPort, () => {
+  console.log('api server up and running');
 });
