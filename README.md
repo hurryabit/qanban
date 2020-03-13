@@ -19,7 +19,7 @@ state between restarts in an SQLite database store in a file.
 
 This project uses yarn workspaces, hence you need yarn (and not npm).
 To install all dependencies and build all components, run
-```shell
+```console
 yarn install
 yarn workspaces run build
 ```
@@ -28,13 +28,13 @@ at the root of the repository.
 ## Run
 
 To start the `qanban-router`, execute
-```shell
+```console
 yarn run qanban-router
 ```
 at the root of the repository. The router always listens on port 7475.
 
 To start a `qanban-node`, execute
-```shell
+```console
 yarn run qanban-node <participant-name> <frontend-port>
 ```
 at the root of the repository. `<participant-name>` is the name of the
@@ -45,7 +45,7 @@ state in an SQLite database in the current directory, i.e. the root of the
 repository, between runs. This database is stored in `<participant-name>.db`.
 
 For example, to start a node for Alice and serve her frontend on http://localhost:3000, call
-```shell
+```console
 yarn run qanban-node Alice 3000
 ```
 
@@ -55,13 +55,13 @@ Our demo will consist of a network with three participants, Alice, Bob
 and Carol. First, we only start the router and the nodes for Alice and
 Bob, by calling the following three commands, each in a separate terminal
 window:
-```shell
+```console
 yarn run qanban-router
 ```
-```shell
+```console
 yarn run qanban-node Alice 3000
 ```
-```shell
+```console
 yarn run qanban-node Bob 4000
 ```
 
@@ -91,7 +91,7 @@ frontend, we can see that the question mark left of Bob's name has turned
 into a check mark, indicating his approval.
 
 In order to finally record Carol's approval, we start her node by running
-```shell
+```console
 yarn run qanban-node Carol 5000
 ```
 in yet another terminal and point our browser to http://localhost:5000.

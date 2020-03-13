@@ -2,6 +2,20 @@
   "private": true,
   "name": "qanban-ui",
   "version": "0.0.1",
+  "author": "Martin Huschenbett <martin.huschenbett@posteo.me>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hurryabit/qanban.git",
+    "directory": "ui"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 src/"
+  },
   "dependencies": {
     "@mojotech/json-type-validation": "^3.1.0",
     "qanban-types": "0.0.1",
@@ -19,13 +33,6 @@
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 src/"
   },
   "proxy": "http://localhost:7501/",
   "eslintConfig": {
