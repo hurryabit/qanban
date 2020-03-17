@@ -1,4 +1,6 @@
 import WebSocket from 'ws';
+import http from 'http';
+import url from 'url';
 
 type LoginMessage = {
   login: string;
@@ -43,13 +45,13 @@ function sendMessage(socket: WebSocket, message: unknown) {
 
 const port = Number.parseInt(process.env.PORT ?? "7475");
 console.log(`binding router to port ${port}`);
-const server = new WebSocket.Server({port});
 
-server.on('listening', () => {
-  console.log('router up and running');
-})
+const httpServer = http.createServer((_req, res) => {
+  res.writeHead(302, {'Location': 'https://github.com/hurryabit/qanban#readme'}).end();
+});
+const wsServer = new WebSocket.Server({noServer: true});
 
-server.on('connection', (socket, initialMessage) => {
+wsServer.on('connection', (socket, initialMessage) => {
   console.log('new connection', initialMessage.headers);
   const address = JSON.stringify(initialMessage.headers);
   let sender: string | undefined = undefined;
@@ -103,4 +105,20 @@ server.on('connection', (socket, initialMessage) => {
     }
     console.log(`disconnect from ${address}`);
   });
+});
+
+httpServer.on('upgrade', function upgrade(request, socket, head) {
+  const pathname = url.parse(request.url).pathname;
+
+  if (pathname === '/') {
+    wsServer.handleUpgrade(request, socket, head, ws => {
+      wsServer.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
+
+httpServer.listen({port}, () => {
+  console.log('router up and running');
 });
