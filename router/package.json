@@ -12,6 +12,7 @@
   },
   "bin": "bin/index.js",
   "scripts": {
+    "start": "ts-node src/index.ts",
     "build": "tsc --build",
     "build:watch": "tsc --build --watch",
     "test": "true",
