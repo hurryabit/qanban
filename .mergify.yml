@@ -1,0 +1,9 @@
+pull_request_rules:
+  - name: Squash merge hurryabit's PRs once CI has passed
+    conditions:
+      - "author=hurryabit"
+      - "status-success=ci/circleci: build"
+    actions:
+      merge:
+        method: squash
+        strict: smart
