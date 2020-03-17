@@ -14,6 +14,8 @@ type MessageWithSender = {
   [_: string]: unknown;
 }
 
+const PING_INTERVAL = 5_000;
+
 function assertIsLoginMessage (message: unknown): asserts message is LoginMessage {
   if (typeof message === "object" && message !== null) {
     const keys = Object.keys(message);
@@ -33,7 +35,7 @@ function assertIsMessageWithReceiver(message: unknown): asserts message is Messa
   throw Error(`Expected message with receiver, found ${JSON.stringify(message)}.`);
 }
 
-const clients: {[client: string]: WebSocket | MessageWithSender[]} = {};
+const clients: {[client: string]: {socket: WebSocket; pingInterval?: NodeJS.Timeout} | MessageWithSender[]} = {};
 
 function sendMessage(socket: WebSocket, message: unknown) {
   socket.send(JSON.stringify(message));
@@ -57,14 +59,15 @@ server.on('connection', (socket, initialMessage) => {
         sender = message.login;
         if (sender in clients) {
           const client = clients[sender];
-          if (client instanceof WebSocket) {
+          if ("socket" in client) {
             throw Error(`User ${sender} is already connected.`);
           }
           while (client.length > 0) {
             sendMessage(socket, client.shift());
           }
         }
-        clients[sender] = socket;
+        const pingInterval = setInterval(() => socket.ping(), PING_INTERVAL);
+        clients[sender] = {socket, pingInterval};
       } else {
         assertIsMessageWithReceiver(message);
         const receiver = message.receiver;
@@ -74,8 +77,8 @@ server.on('connection', (socket, initialMessage) => {
         const receiverClient = clients[receiver];
         delete message.receiver;
         message.sender = sender;
-        if (receiverClient instanceof WebSocket) {
-          sendMessage(receiverClient, message);
+        if ("socket" in receiverClient) {
+          sendMessage(receiverClient.socket, message);
         } else {
           receiverClient.push(message as unknown as MessageWithSender);
         }
@@ -90,6 +93,10 @@ server.on('connection', (socket, initialMessage) => {
   });
   socket.on('close', () => {
     if (sender !== undefined) {
+      const client = clients[sender];
+      if ("pingInterval" in client && client.pingInterval !== undefined) {
+        clearInterval(client.pingInterval);
+      }
       clients[sender] = [];
     }
     console.log(`disconnect from ${address}`);

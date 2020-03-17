@@ -207,6 +207,7 @@ const socket = new WebSocket('ws://localhost:7475');
 
 socket.on('open', () => {
   console.log('connected to router');
+  socket.on('ping', () => socket.pong());
   socket.on('message', rawMessage => {
       const json = JSON.parse(rawMessage.toString());
       console.log('incoming message:', json);
