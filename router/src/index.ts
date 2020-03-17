@@ -1,4 +1,4 @@
-import net from 'net';
+import WebSocket from 'ws';
 
 type LoginMessage = {
   login: string;
@@ -33,52 +33,56 @@ function assertIsMessageWithReceiver(message: unknown): asserts message is Messa
   throw Error(`Expected message with receiver, found ${JSON.stringify(message)}.`);
 }
 
-const clients: {[client: string]: net.Socket | MessageWithSender[]} = {};
+const clients: {[client: string]: WebSocket | MessageWithSender[]} = {};
 
-const sendMessage = (socket: net.Socket, message: unknown) => {
-  socket.write(JSON.stringify(message) + '\n');
+function sendMessage(socket: WebSocket, message: unknown) {
+  socket.send(JSON.stringify(message));
 }
 
-const server = net.createServer(socket => {
-  const address = `${socket.remoteAddress}:${socket.remotePort}`;
+const server = new WebSocket.Server({host: 'localhost', port: 7475});
+
+server.on('listening', () => {
+  console.log('router up and running');
+})
+
+server.on('connection', (socket, initialMessage) => {
+  console.log('new connection', initialMessage.headers);
+  const address = JSON.stringify(initialMessage.headers);
   let sender: string | undefined = undefined;
-  console.log(`new connection from ${address}`);
-  socket.on('data', datas => {
-    for (const data of datas.toString().split('\n').filter(data => data !== '')) {
-      try {
-        const message = JSON.parse(data);
-        if (sender === undefined) {
-          assertIsLoginMessage(message);
-          sender = message.login;
-          if (sender in clients) {
-            const client = clients[sender];
-            if (client instanceof net.Socket) {
-              throw Error(`User ${sender} is already connected.`);
-            }
-            while (client.length > 0) {
-              sendMessage(socket, client.shift());
-            }
+  socket.on('message', rawMessage => {
+    try {
+      const message = JSON.parse(rawMessage.toString());
+      if (sender === undefined) {
+        assertIsLoginMessage(message);
+        sender = message.login;
+        if (sender in clients) {
+          const client = clients[sender];
+          if (client instanceof WebSocket) {
+            throw Error(`User ${sender} is already connected.`);
           }
-          clients[sender] = socket;
-        } else {
-          assertIsMessageWithReceiver(message);
-          const receiver = message.receiver;
-          if (!(receiver in clients)) {
-            clients[receiver] = [];
-          }
-          const receiverClient = clients[receiver];
-          delete message.receiver;
-          message.sender = sender;
-          if (receiverClient instanceof net.Socket) {
-            sendMessage(receiverClient, message);
-          } else {
-            receiverClient.push(message as unknown as MessageWithSender);
+          while (client.length > 0) {
+            sendMessage(socket, client.shift());
           }
         }
-      } catch (error) {
-        sendMessage(socket, {error: error.toString()});
-        socket.end();
+        clients[sender] = socket;
+      } else {
+        assertIsMessageWithReceiver(message);
+        const receiver = message.receiver;
+        if (!(receiver in clients)) {
+          clients[receiver] = [];
+        }
+        const receiverClient = clients[receiver];
+        delete message.receiver;
+        message.sender = sender;
+        if (receiverClient instanceof WebSocket) {
+          sendMessage(receiverClient, message);
+        } else {
+          receiverClient.push(message as unknown as MessageWithSender);
+        }
       }
+    } catch (error) {
+      sendMessage(socket, {error: error.toString()});
+      socket.terminate();
     }
   });
   socket.on('error', error => {
@@ -90,8 +94,4 @@ const server = net.createServer(socket => {
     }
     console.log(`disconnect from ${address}`);
   });
-});
-
-server.listen(7475, 'localhost', () => {
-  console.log('router up and running');
 });

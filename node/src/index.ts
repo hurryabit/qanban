@@ -1,7 +1,7 @@
 import * as jtv from '@mojotech/json-type-validation';
 import sqlite3 from 'better-sqlite3';
 import express from 'express';
-import net from 'net';
+import WebSocket from 'ws';
 import { Command, commandDecoder, Contract, contractDecoder, ContractState, Id, idDecoder, Message, messageDecoder, Party, partyDecoder, UpdateMessage } from 'qanban-types';
 import { v4 as uuidV4 } from 'uuid';
 
@@ -13,9 +13,9 @@ type Ledger = Readonly<{
   update(id: Id, contract: Contract): void;
 }>
 
-const sendMessage = (socket: net.Socket, message: unknown) => {
+const sendMessage = (socket: WebSocket, message: unknown) => {
   console.log('outgoing message:', message);
-  socket.write(JSON.stringify(message) + '\n');
+  socket.send(JSON.stringify(message));
 }
 
 function stakeholders(contract: Contract): Set<Party> {
@@ -137,7 +137,7 @@ function handleMessage(ledger: Ledger, rawMessage: unknown) {
   }
 }
 
-function handleCommand(ledger: Ledger, socket: net.Socket, participant: Party, command: Command) {
+function handleCommand(ledger: Ledger, socket: WebSocket, participant: Party, command: Command) {
   let id: Id;
   let message: Message;
   if (command.type === "propose") {
@@ -203,19 +203,17 @@ const apiPort = Number.parseInt(argv[3]);
 
 const ledger = Ledger(`${participant}.db`);
 
-const socket = net.createConnection({ port: 7475 });
+const socket = new WebSocket('ws://localhost:7475');
 
-socket.on('connect', () => {
+socket.on('open', () => {
   console.log('connected to router');
-  socket.on('data', datas => {
-    for (const data of datas.toString().split('\n').filter(data => data !== '')) {
-      const json = JSON.parse(data.toString());
+  socket.on('message', rawMessage => {
+      const json = JSON.parse(rawMessage.toString());
       console.log('incoming message:', json);
       handleMessage(ledger, json);
-    }
   });
-  socket.on('close', hadError => {
-    process.exit(hadError ? 1 : 0);
+  socket.on('close', () => {
+    process.exit(1);
   });
   sendMessage(socket, { login: participant });
 });
