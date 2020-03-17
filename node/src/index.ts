@@ -91,7 +91,8 @@ function updateContract(contract: Contract, sender: Party, message: UpdateMessag
   }
 }
 
-function updateLedger(ledger: Ledger, id: Id, sender: Party, message: Message): Contract {
+function updateLedger(ledger: Ledger, persist: boolean, sender: Party, message: Message): Contract {
+  const id = message.id;
   if (message.type === "propose") {
     if (!id.startsWith(sender)) {
       throw Error(`id ${id} does not start with sender '${sender}'`);
@@ -115,7 +116,9 @@ function updateLedger(ledger: Ledger, id: Id, sender: Party, message: Message): 
     const missingAcceptances = stakeholders(contract);
     missingAcceptances.delete(sender);
     contract.missingAcceptances = [...missingAcceptances];
-    ledger.create(id, contract);
+    if (persist) {
+      ledger.create(id, contract);
+    }
     return contract;
   } else {
     const contract = ledger.fetch(id);
@@ -123,19 +126,20 @@ function updateLedger(ledger: Ledger, id: Id, sender: Party, message: Message): 
       throw Error(`id ${id} does not exist`);
     }
     updateContract(contract, sender, message);
-    ledger.update(id, contract);
+    if (persist) {
+      ledger.update(id, contract);
+    }
     return contract;
   }
 }
 
 function handleMessage(ledger: Ledger, rawMessage: unknown) {
   try {
-    const { id, sender, message } = jtv.object({
-      id: idDecoder(),
+    const { sender, payload: message } = jtv.object({
       sender: partyDecoder(),
-      message: messageDecoder(),
+      payload: messageDecoder(),
     }).runWithException(rawMessage);
-    updateLedger(ledger, id, sender, message);
+    updateLedger(ledger, true, sender, message);
   } catch (error) {
     console.error('failed to handle message', rawMessage, error);
   }
@@ -146,17 +150,15 @@ function handleCommand(ledger: Ledger, socket: WebSocket, participant: Party, co
   let message: Message;
   if (command.type === "propose") {
     id = idDecoder().runWithException(`${participant}-${uuidV4()}`);
-    message = { ...command, proposer: participant };
+    message = { ...command, id, proposer: participant };
   } else {
-    id = command.id;
-    delete command.id;
     message = { ...command };
   }
-  const contract = updateLedger(ledger, id, participant, message);
-  const receivers = stakeholders(contract);
-  receivers.delete(participant);
-  receivers.forEach(receiver => {
-    sendMessage(socket, { receiver, id, message });
+  const contract = updateLedger(ledger, false, participant, message);
+  sendMessage(socket, {
+    sender: participant,
+    receivers: [...stakeholders(contract)],
+    payload: message
   });
 }
 

@@ -19,6 +19,7 @@
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
+    "@mojotech/json-type-validation": "^3.1.0",
     "node": "^13.10.1",
     "ws": "^7.2.3"
   },
