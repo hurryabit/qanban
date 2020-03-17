@@ -29,6 +29,10 @@
     "eslint": "^6.8.0",
     "typescript": "~3.8.3"
   },
+  "engines": {
+    "node": "^13.10.1",
+    "yarn": "^1.22.0"
+  },
   "eslintConfig": {
     "extends": [
       "eslint:recommended",

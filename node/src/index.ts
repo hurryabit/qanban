@@ -193,17 +193,18 @@ function Ledger(dbfile: string): Ledger {
 }
 
 const argv = process.argv;
-if (argv.length !== 4) {
-  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <frontend-port>`);
+if (argv.length < 4 || argv.length > 5) {
+  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <frontend-port> [<router-host>]`);
   process.exit(1);
 }
 
 const participant = partyDecoder().runWithException(argv[2]);
 const apiPort = Number.parseInt(argv[3]);
+const routerHost = argv[4] ?? 'localhost:7475';
 
 const ledger = Ledger(`${participant}.db`);
 
-const socket = new WebSocket('ws://localhost:7475');
+const socket = new WebSocket(`ws://${routerHost}`);
 
 socket.on('open', () => {
   console.log('connected to router');
