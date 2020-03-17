@@ -31,22 +31,24 @@ To start the `qanban-router`, execute
 ```console
 yarn run qanban-router
 ```
-at the root of the repository. The router always listens on port 7475.
+at the root of the repository. The router listens on the port given in the
+environment variable `PORT` and defaults to 7475 if that variable is not set.
 
 To start a `qanban-node`, execute
 ```console
-yarn run qanban-node <participant-name> <frontend-port>
+yarn run qanban-node --name <participant-name> --port <frontend-port>
 ```
 at the root of the repository. `<participant-name>` is the name of the
 participant, for instance "Alice". `<frontend-port>` is the port the web
 frontent will listen on. Currently, each node will look for a router
 on port 7475 on localhost and connect to it. Nodes persist their internal
 state in an SQLite database in the current directory, i.e. the root of the
-repository, between runs. This database is stored in `<participant-name>.db`.
+repository, between runs. This database is stored in
+`~/.config/qanban/<participant-name>.db`.
 
 For example, to start a node for Alice and serve her frontend on http://localhost:3000, call
 ```console
-yarn run qanban-node Alice 3000
+yarn run qanban-node --name Alice --port 3000
 ```
 
 ## Demo
@@ -59,10 +61,10 @@ window:
 yarn run qanban-router
 ```
 ```console
-yarn run qanban-node Alice 3000
+yarn run qanban-node --name Alice --port 3000
 ```
 ```console
-yarn run qanban-node Bob 4000
+yarn run qanban-node --name Bob --port 4000
 ```
 
 Next, we impersonate Alice and propose a todo item for Bob to bake her a
@@ -92,7 +94,7 @@ into a check mark, indicating his approval.
 
 In order to finally record Carol's approval, we start her node by running
 ```console
-yarn run qanban-node Carol 5000
+yarn run qanban-node --name Carol --port 5000
 ```
 in yet another terminal and point our browser to http://localhost:5000.
 Clicking "Accept" will move the todo into the "Accepted" column on
