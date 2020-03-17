@@ -41,7 +41,9 @@ function sendMessage(socket: WebSocket, message: unknown) {
   socket.send(JSON.stringify(message));
 }
 
-const server = new WebSocket.Server({host: 'localhost', port: 7475});
+const port = Number.parseInt(process.env.PORT ?? "7475");
+console.log(`binding router to port ${port}`);
+const server = new WebSocket.Server({port});
 
 server.on('listening', () => {
   console.log('router up and running');
