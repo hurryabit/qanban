@@ -5,5 +5,17 @@
     "types",
     "node",
     "ui"
+  ],
+  "scripts": {
+    "build": "yarn workspace qanban-router run build",
+    "start": "yarn run qanban-router"
+  },
+  "engines": {
+    "node": "^13.10.1",
+    "yarn": "^1.22.4"
+  },
+  "cacheDirectories": [
+    "node_modules",
+    "router/node_modules"
   ]
 }
