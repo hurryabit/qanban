@@ -25,7 +25,8 @@
     "node": "^13.10.1",
     "qanban-types": "0.0.1",
     "uuid": "^7.0.2",
-    "ws": "^7.2.3"
+    "ws": "^7.2.3",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^5.4.0",
@@ -33,6 +34,7 @@
     "@types/node": "^13.9.0",
     "@types/uuid": "^7.0.0",
     "@types/ws": "^7.2.2",
+    "@types/yargs": "^15.0.4",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0",

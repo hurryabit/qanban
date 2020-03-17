@@ -4,6 +4,10 @@ import express from 'express';
 import WebSocket from 'ws';
 import { Command, commandDecoder, Contract, contractDecoder, ContractState, Id, idDecoder, Message, messageDecoder, Party, partyDecoder, UpdateMessage } from 'qanban-types';
 import { v4 as uuidV4 } from 'uuid';
+import yargs from 'yargs';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 
 type Ledger = Readonly<{
   list(): Id[];
@@ -192,17 +196,67 @@ function Ledger(dbfile: string): Ledger {
   return { list, fetch, fetchAll, create, update };
 }
 
-const argv = process.argv;
-if (argv.length < 4 || argv.length > 5) {
-  console.error(`usage: ${argv[0]} ${argv[1]} <participant-name> <frontend-port> [<router-host>]`);
-  process.exit(1);
+type Args = {
+  name: string;
+  database?: string;
+  clean?: boolean;
+  port: number;
+  router: string;
 }
 
-const participant = partyDecoder().runWithException(argv[2]);
-const apiPort = Number.parseInt(argv[3]);
-const routerHost = argv[4] ?? 'localhost:7475';
+const args: Args = yargs
+  .usage('start a qanban-node')
+  .version(false)
+  .options({
+    name: {
+      type: "string",
+      alias: 'n',
+      description: 'Name of the participant',
+      demandOption: true,
+    },
+    database: {
+      type: "string",
+      alias: 'd',
+      description: 'Path to the SQLite3 database',
+    },
+    clean: {
+      type: "boolean",
+      alias: 'c',
+      description: 'Clean the database before starting',
+    },
+    port: {
+      alias: 'p',
+      description: 'Port of the web frontend',
+      default: 3000,
+    },
+    router: {
+      alias: 'r',
+      description: 'Address of the router',
+      default: 'localhost:7475',
+    },
+  })
+  .demandCommand(0, 0, '', 'Positional arguments are not allowed')
+  .strict()
+  .argv;
 
-const ledger = Ledger(`${participant}.db`);
+const participant = partyDecoder().runWithException(args.name);
+const uiPort = args.port;
+const routerHost = args.router;
+let database: string;
+if (args.database === undefined) {
+  const configHome = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), '.config');
+  const qanbanHome = path.join(configHome, 'qanban');
+  fs.mkdirSync(qanbanHome, {recursive: true});
+  database = path.join(qanbanHome, `${participant}.db`);
+  console.log(`database path: ${database}`);
+} else {
+  database = args.database;
+}
+if (args.clean) {
+  fs.unlinkSync(database);
+}
+
+const ledger = Ledger(database);
 
 const socket = new WebSocket(`ws://${routerHost}`);
 
@@ -251,6 +305,6 @@ app.post('/api/command', (req, res) => {
   }
 });
 
-app.listen(apiPort, () => {
+app.listen(uiPort, () => {
   console.log('api server up and running');
 });
