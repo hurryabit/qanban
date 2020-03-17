@@ -28,27 +28,27 @@ export type Contract = {
   missingApprovals: Party[];
 }
 
-export type CreateCommand = {
+export type CreateMessage = {
+  id: Id;
   type: "propose";
   description: string;
+  proposer: Party;
   assignee: Party;
   reviewers: Party[];
 }
 
-export type CreateMessage = CreateCommand & { proposer: Party }
+export type CreateCommand = Omit<CreateMessage, "id" | "proposer">
 
 export type UpdateMessage =
-  | { type: "accept" }
-  | { type: "start" }
-  | { type: "finish" }
-  | { type: "reject"; comment: string }
-  | { type: "approve" }
-
-export type UpdateCommand = UpdateMessage & { id: Id }
+  | { id: Id; type: "accept" }
+  | { id: Id; type: "start" }
+  | { id: Id; type: "finish" }
+  | { id: Id; type: "reject"; comment: string }
+  | { id: Id; type: "approve" }
 
 export type Message = CreateMessage | UpdateMessage
 
-export type Command = CreateCommand | UpdateCommand
+export type Command = CreateCommand | UpdateMessage
 
 export const allContractStates: ContractState[] =
   ["PROPOSED", "ACCEPTED", "IN_PROGRESS", "IN_REVIEW", "DONE"];
@@ -86,23 +86,22 @@ export const createCommandDecoder = (): jtv.Decoder<CreateCommand> => jtv.object
 
 export const createMessageDecoder = (): jtv.Decoder<CreateMessage> => merge(
   createCommandDecoder(),
-  jtv.object({proposer: partyDecoder()}),
+  jtv.object({
+    id: idDecoder(),
+    proposer: partyDecoder()
+  }),
 );
 
 export const updateMessageDecoder = () => jtv.oneOf<UpdateMessage>(
-  jtv.object({type: jtv.constant("accept")}),
-  jtv.object({type: jtv.constant("start")}),
-  jtv.object({type: jtv.constant("finish")}),
+  jtv.object({id: idDecoder(), type: jtv.constant("accept")}),
+  jtv.object({id: idDecoder(), type: jtv.constant("start")}),
+  jtv.object({id: idDecoder(), type: jtv.constant("finish")}),
   jtv.object({
+    id: idDecoder(),
     type: jtv.constant("reject"),
     comment: jtv.string(),
   }),
-  jtv.object({type: jtv.constant("approve")}),
-);
-
-export const updateCommandDecoder = (): jtv.Decoder<UpdateCommand> => merge(
-  updateMessageDecoder(),
-  jtv.object({id: idDecoder()}),
+  jtv.object({id: idDecoder(), type: jtv.constant("approve")}),
 );
 
 export const messageDecoder = () => jtv.oneOf<Message>(
@@ -112,7 +111,7 @@ export const messageDecoder = () => jtv.oneOf<Message>(
 
 export const commandDecoder = () => jtv.oneOf<Command>(
   createCommandDecoder(),
-  updateCommandDecoder(),
+  updateMessageDecoder(),
 );
 
 export function stakeholders(contract: Contract): Set<Party> {

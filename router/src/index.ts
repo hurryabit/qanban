@@ -1,43 +1,31 @@
 import WebSocket from 'ws';
 import http from 'http';
 import url from 'url';
+import * as jtv from '@mojotech/json-type-validation';
 
 type LoginMessage = {
   login: string;
 }
 
-type MessageWithReceiver = {
-  receiver: string;
-  [_: string]: unknown;
-}
-
-type MessageWithSender = {
+type ProperMessage = {
   sender: string;
-  [_: string]: unknown;
+  receivers: string[];
+  payload: unknown;
 }
 
 const PING_INTERVAL = 5_000;
 
-function assertIsLoginMessage (message: unknown): asserts message is LoginMessage {
-  if (typeof message === "object" && message !== null) {
-    const keys = Object.keys(message);
-    if (keys.length === 1 && keys[0] === "login"
-        && typeof (message as {login: unknown}).login === "string") {
-      return;
-    }
-  }
-  throw Error(`Expected login message, found ${JSON.stringify(message)}.`);
-}
+const loginMessageDecoder = (): jtv.Decoder<LoginMessage> => jtv.object({
+  login: jtv.string()
+});
 
-function assertIsMessageWithReceiver(message: unknown): asserts message is MessageWithReceiver {
-  if (typeof message === "object" && message !== null && "receiver" in message
-      && typeof (message as {receiver: unknown}).receiver === "string") {
-    return;
-  }
-  throw Error(`Expected message with receiver, found ${JSON.stringify(message)}.`);
-}
+const properMessageDecoder = (): jtv.Decoder<ProperMessage> => jtv.object({
+  sender: jtv.string(),
+  receivers: jtv.array(jtv.string()),
+  payload: jtv.unknownJson(),
+});
 
-const clients: {[client: string]: {socket: WebSocket; pingInterval?: NodeJS.Timeout} | MessageWithSender[]} = {};
+const clients: {[client: string]: {socket: WebSocket; pingInterval?: NodeJS.Timeout} | ProperMessage[]} = {};
 
 function sendMessage(socket: WebSocket, message: unknown) {
   socket.send(JSON.stringify(message));
@@ -57,10 +45,10 @@ wsServer.on('connection', (socket, initialMessage) => {
   let sender: string | undefined = undefined;
   socket.on('message', rawMessage => {
     try {
-      const message = JSON.parse(rawMessage.toString());
+      const json = JSON.parse(rawMessage.toString());
       if (sender === undefined) {
-        assertIsLoginMessage(message);
-        sender = message.login;
+        const loginMessage = loginMessageDecoder().runWithException(json);
+        sender = loginMessage.login;
         if (sender in clients) {
           const client = clients[sender];
           if ("socket" in client) {
@@ -73,18 +61,20 @@ wsServer.on('connection', (socket, initialMessage) => {
         const pingInterval = setInterval(() => socket.ping(), PING_INTERVAL);
         clients[sender] = {socket, pingInterval};
       } else {
-        assertIsMessageWithReceiver(message);
-        const receiver = message.receiver;
-        if (!(receiver in clients)) {
-          clients[receiver] = [];
+        const properMessage = properMessageDecoder().runWithException(json);
+        if (properMessage.sender !== sender) {
+          throw Error(`Sender ${properMessage.sender} does not match participant ${sender}.`);
         }
-        const receiverClient = clients[receiver];
-        delete message.receiver;
-        message.sender = sender;
-        if ("socket" in receiverClient) {
-          sendMessage(receiverClient.socket, message);
-        } else {
-          receiverClient.push(message as unknown as MessageWithSender);
+        for (const receiver of properMessage.receivers) {
+          if (!(receiver in clients)) {
+            clients[receiver] = [];
+          }
+          const receiverClient = clients[receiver];
+          if ("socket" in receiverClient) {
+            sendMessage(receiverClient.socket, properMessage);
+          } else {
+            receiverClient.push(properMessage);
+          }
         }
       }
     } catch (error) {

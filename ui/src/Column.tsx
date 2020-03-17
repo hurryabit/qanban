@@ -1,6 +1,6 @@
 import React from 'react';
 import { Grid, Header, Card, Button, List, SemanticICONS } from 'semantic-ui-react';
-import { Id, ContractState, Contract, Party, UpdateCommand } from 'qanban-types';
+import { Id, ContractState, Contract, Party, UpdateMessage } from 'qanban-types';
 import ProposalButton from './ProposalButton';
 
 type Props = {
@@ -24,9 +24,9 @@ type Action = {
   callback(id: Id, reload: () => void): void;
 }
 
-function simpleCallback(type: Exclude<UpdateCommand["type"], "reject">): (id: Id, reload: () => void) => void {
+function simpleCallback(type: Exclude<UpdateMessage["type"], "reject">): (id: Id, reload: () => void) => void {
   const callback = async (id: Id, reload: () => void) => {
-    const command: UpdateCommand = {id, type};
+    const command: UpdateMessage = {id, type};
     const res = await fetch('/api/command', {
       method: "POST",
       headers: {
@@ -49,7 +49,7 @@ function rejectCallback(): (id: Id, reload: () => void) => void {
     if (comment === null) {
       return;
     }
-    const command: UpdateCommand = {id, type: "reject", comment};
+    const command: UpdateMessage = {id, type: "reject", comment};
     const res = await fetch('/api/command', {
       method: "POST",
       headers: {
