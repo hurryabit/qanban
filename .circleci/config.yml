@@ -12,15 +12,16 @@ jobs:
           command: yarn --version
       - restore_cache:
           name: Restore cache
-          key: node-v2-{{ checksum "yarn.lock" }}
+          key: node-v3-{{ checksum "yarn.lock" }}
       - run:
           name: Install
           command: yarn install --frozen-lockfile
       - save_cache:
           name: Save cache
-          key: node-v2-{{ checksum "yarn.lock" }}
+          key: node-v3-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
+            - chat/node_modules
             - node/node_modules
             - router/node_modules
             - types/node_modules
