@@ -254,7 +254,7 @@ if (args.database === undefined) {
 } else {
   database = args.database;
 }
-if (args.clean) {
+if (args.clean && fs.existsSync(database)) {
   fs.unlinkSync(database);
 }
 
