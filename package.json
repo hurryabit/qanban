@@ -2,6 +2,7 @@
   "private": true,
   "workspaces": [
     "router",
+    "chat",
     "types",
     "node",
     "ui"

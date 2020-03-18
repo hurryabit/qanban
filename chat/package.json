@@ -1,0 +1,60 @@
+{
+  "private": true,
+  "name": "qanban-chat",
+  "version": "0.0.1",
+  "homepage": "https://github.com/hurryabit/qanban#readme",
+  "author": "Martin Huschenbett <martin.huschenbett@posteo.me>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hurryabit/qanban.git",
+    "directory": "node"
+  },
+  "bin": "bin/index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc --build",
+    "build:watch": "tsc --build --watch",
+    "test": "true",
+    "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
+  },
+  "dependencies": {
+    "node": "^13.10.1",
+    "ws": "^7.2.3",
+    "yargs": "^15.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^13.9.0",
+    "@types/ws": "^7.2.2",
+    "@types/yargs": "^15.0.4",
+    "@typescript-eslint/eslint-plugin": "^2.23.0",
+    "@typescript-eslint/parser": "^2.23.0",
+    "eslint": "^6.8.0",
+    "ts-node": "^8.6.2",
+    "typescript": "~3.8.3"
+  },
+  "engines": {
+    "node": "^13.10.1",
+    "yarn": "^1.22.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "project": "./tsconfig.json"
+    },
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-inferrable-types": "off"
+    }
+  }
+}
