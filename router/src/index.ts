@@ -25,7 +25,7 @@ const properMessageDecoder = (): jtv.Decoder<ProperMessage> => jtv.object({
   payload: jtv.unknownJson(),
 });
 
-const clients: {[client: string]: {socket: WebSocket; pingInterval?: NodeJS.Timeout} | ProperMessage[]} = {};
+const clients: {[client: string]: WebSocket | ProperMessage[]} = {};
 
 function sendMessage(socket: WebSocket, message: unknown) {
   socket.send(JSON.stringify(message));
@@ -42,36 +42,35 @@ const wsServer = new WebSocket.Server({noServer: true});
 wsServer.on('connection', (socket, initialMessage) => {
   console.log('new connection', initialMessage.headers);
   const address = JSON.stringify(initialMessage.headers);
-  let sender: string | undefined = undefined;
+  let participant: string | undefined = undefined;
   socket.on('message', rawMessage => {
     try {
       const json = JSON.parse(rawMessage.toString());
-      if (sender === undefined) {
+      if (participant === undefined) {
         const loginMessage = loginMessageDecoder().runWithException(json);
-        sender = loginMessage.login;
-        if (sender in clients) {
-          const client = clients[sender];
-          if ("socket" in client) {
-            throw Error(`User ${sender} is already connected.`);
+        participant = loginMessage.login;
+        if (participant in clients) {
+          const client = clients[participant];
+          if (client instanceof WebSocket) {
+            throw Error(`User ${participant} is already connected.`);
           }
           while (client.length > 0) {
             sendMessage(socket, client.shift());
           }
         }
-        const pingInterval = setInterval(() => socket.ping(), PING_INTERVAL);
-        clients[sender] = {socket, pingInterval};
+        clients[participant] = socket;
       } else {
         const properMessage = properMessageDecoder().runWithException(json);
-        if (properMessage.sender !== sender) {
-          throw Error(`Sender ${properMessage.sender} does not match participant ${sender}.`);
+        if (properMessage.sender !== participant) {
+          throw Error(`Sender ${properMessage.sender} does not match participant ${participant}.`);
         }
         for (const receiver of properMessage.receivers) {
           if (!(receiver in clients)) {
             clients[receiver] = [];
           }
           const receiverClient = clients[receiver];
-          if ("socket" in receiverClient) {
-            sendMessage(receiverClient.socket, properMessage);
+          if (receiverClient instanceof WebSocket) {
+            sendMessage(receiverClient, properMessage);
           } else {
             receiverClient.push(properMessage);
           }
@@ -85,13 +84,11 @@ wsServer.on('connection', (socket, initialMessage) => {
   socket.on('error', error => {
     console.error(`error on connection from ${address}: ${error}`);
   });
+  const pingInterval = setInterval(() => socket.ping(), PING_INTERVAL);
   socket.on('close', () => {
-    if (sender !== undefined) {
-      const client = clients[sender];
-      if ("pingInterval" in client && client.pingInterval !== undefined) {
-        clearInterval(client.pingInterval);
-      }
-      clients[sender] = [];
+    clearInterval(pingInterval);
+    if (participant !== undefined) {
+      clients[participant] = [];
     }
     console.log(`disconnect from ${address}`);
   });
