@@ -1,6 +1,12 @@
 {
 	"folders": [
 		{
+			"path": "router"
+		},
+		{
+			"path": "chat"
+		},
+		{
 			"path": "types"
 		},
 		{
@@ -9,8 +15,5 @@
 		{
 			"path": "ui"
 		},
-		{
-			"path": "router"
-		}
 	]
 }
