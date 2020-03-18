@@ -12,7 +12,10 @@ jobs:
           command: yarn --version
       - restore_cache:
           name: Restore cache
-          key: node-v3-{{ checksum "yarn.lock" }}
+          keys:
+            - node-v3-{{ checksum "yarn.lock" }}
+            - node-v3-
+            - node-
       - run:
           name: Install
           command: yarn install --frozen-lockfile
