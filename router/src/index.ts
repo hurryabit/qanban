@@ -62,7 +62,7 @@ wsServer.on('connection', (socket, initialMessage) => {
         }
         clients[participant] = undefined;
         let queuedRawMessage;
-        while ((queuedRawMessage = await redis.lpop(`queue:${participant}`)) !== null) {
+        while ((queuedRawMessage = await redis.rpop(`queue:${participant}`)) !== null) {
           console.log(`redis: ${queuedRawMessage}`);
           socket.send(queuedRawMessage);
         }
@@ -76,7 +76,7 @@ wsServer.on('connection', (socket, initialMessage) => {
           const client = clients[receiver];
           if (client === undefined) {
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            redis.rpush(`queue:${receiver}`, rawMessage);
+            redis.lpush(`queue:${receiver}`, rawMessage);
           } else {
             client.send(rawMessage);
           }
