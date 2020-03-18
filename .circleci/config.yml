@@ -30,3 +30,6 @@ jobs:
       - run:
           name: Lint
           command: yarn workspaces run lint
+      - run:
+          name: Test
+          command: yarn workspaces run test
