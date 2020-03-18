@@ -80,7 +80,7 @@ afterAll(() => {
   for (const participant of participants) {
     if (participant.proc !== undefined) {
       participant.proc.kill();
-      console.log(`node for ${participant.name} up`);
+      console.log(`node for ${participant.name} down`);
     }
   }
 });
