@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import http from 'http';
 import url from 'url';
 import * as jtv from '@mojotech/json-type-validation';
+import Redis from 'ioredis';
 
 type LoginMessage = {
   login: string;
@@ -25,14 +26,12 @@ const properMessageDecoder = (): jtv.Decoder<ProperMessage> => jtv.object({
   payload: jtv.unknownJson(),
 });
 
-const clients: {[client: string]: WebSocket | ProperMessage[]} = {};
-
-function sendMessage(socket: WebSocket, message: unknown) {
-  socket.send(JSON.stringify(message));
-}
+const clients: { [client: string]: WebSocket | undefined } = {};
 
 const port = Number.parseInt(process.env.PORT ?? "7475");
 console.log(`binding router to port ${port}`);
+
+const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
 const httpServer = http.createServer((_req, res) => {
   res.writeHead(302, {'Location': 'https://github.com/hurryabit/qanban#readme'}).end();
@@ -43,20 +42,29 @@ wsServer.on('connection', (socket, initialMessage) => {
   console.log('new connection', initialMessage.headers);
   const address = JSON.stringify(initialMessage.headers);
   let participant: string | undefined = undefined;
-  socket.on('message', rawMessage => {
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  socket.on('message', async data => {
+    // FIXME(MH): This code is full of concurrency bugs. For instance:
+    // (1) We share one Redis connection between all clients.
+    // (2) If the client disconnects while still emptying the queue, the most
+    //     recent message might get lost.
+    // (3) If there is an incoming message right after the queue has been
+    //     emptied, the message might end up in the queue but the client will
+    //     ignore it and switch into live mode.
     try {
-      const json = JSON.parse(rawMessage.toString());
+      const rawMessage = data.toString();
+      const json = JSON.parse(rawMessage);
       if (participant === undefined) {
         const loginMessage = loginMessageDecoder().runWithException(json);
         participant = loginMessage.login;
         if (participant in clients) {
-          const client = clients[participant];
-          if (client instanceof WebSocket) {
-            throw Error(`User ${participant} is already connected.`);
-          }
-          while (client.length > 0) {
-            sendMessage(socket, client.shift());
-          }
+          throw Error(`User ${participant} is already connected.`);
+        }
+        clients[participant] = undefined;
+        let queuedRawMessage;
+        while ((queuedRawMessage = await redis.lpop(`queue:${participant}`)) !== null) {
+          console.log(`redis: ${queuedRawMessage}`);
+          socket.send(queuedRawMessage);
         }
         clients[participant] = socket;
       } else {
@@ -65,19 +73,17 @@ wsServer.on('connection', (socket, initialMessage) => {
           throw Error(`Sender ${properMessage.sender} does not match participant ${participant}.`);
         }
         for (const receiver of properMessage.receivers) {
-          if (!(receiver in clients)) {
-            clients[receiver] = [];
-          }
-          const receiverClient = clients[receiver];
-          if (receiverClient instanceof WebSocket) {
-            sendMessage(receiverClient, properMessage);
+          const client = clients[receiver];
+          if (client === undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            redis.rpush(`queue:${receiver}`, rawMessage);
           } else {
-            receiverClient.push(properMessage);
+            client.send(rawMessage);
           }
         }
       }
     } catch (error) {
-      sendMessage(socket, {error: error.toString()});
+      socket.send(JSON.stringify({error: error.toString()}));
       socket.terminate();
     }
   });
@@ -88,7 +94,7 @@ wsServer.on('connection', (socket, initialMessage) => {
   socket.on('close', () => {
     clearInterval(pingInterval);
     if (participant !== undefined) {
-      clients[participant] = [];
+      delete clients[participant];
     }
     console.log(`disconnect from ${address}`);
   });
