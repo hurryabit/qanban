@@ -19,13 +19,12 @@
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
-    "@mojotech/json-type-validation": "^3.1.0",
     "better-sqlite3": "^6.0.1",
     "express": "^4.17.1",
     "node": "^13.10.1",
     "qanban-types": "0.0.1",
+    "qured-client": "0.0.1",
     "uuid": "^7.0.2",
-    "ws": "^7.2.3",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
@@ -36,7 +35,6 @@
     "@types/node-fetch": "^2.5.5",
     "@types/uuid": "^7.0.0",
     "@types/wait-on": "^4.0.0",
-    "@types/ws": "^7.2.2",
     "@types/yargs": "^15.0.4",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",

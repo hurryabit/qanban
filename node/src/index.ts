@@ -1,13 +1,12 @@
-import * as jtv from '@mojotech/json-type-validation';
 import sqlite3 from 'better-sqlite3';
 import express from 'express';
-import WebSocket from 'ws';
 import { Command, commandDecoder, Contract, contractDecoder, ContractState, Id, idDecoder, Message, messageDecoder, Party, partyDecoder, UpdateMessage } from 'qanban-types';
 import { v4 as uuidV4 } from 'uuid';
 import yargs from 'yargs';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+import QuredClient, { Message as QuredMessage } from 'qured-client';
 
 type Ledger = Readonly<{
   list(): Id[];
@@ -16,11 +15,6 @@ type Ledger = Readonly<{
   create(id: Id, contract: Contract): void;
   update(id: Id, contract: Contract): void;
 }>
-
-const sendMessage = (socket: WebSocket, message: unknown) => {
-  console.log('outgoing message:', message);
-  socket.send(JSON.stringify(message));
-}
 
 function stakeholders(contract: Contract): Set<Party> {
   const stakeholders = new Set<Party>();
@@ -133,19 +127,15 @@ function updateLedger(ledger: Ledger, persist: boolean, sender: Party, message: 
   }
 }
 
-function handleMessage(ledger: Ledger, rawMessage: unknown) {
+function handleMessage(ledger: Ledger, message: QuredMessage<Message, Party>) {
   try {
-    const { sender, payload: message } = jtv.object({
-      sender: partyDecoder(),
-      payload: messageDecoder(),
-    }).runWithException(rawMessage);
-    updateLedger(ledger, true, sender, message);
+    updateLedger(ledger, true, message.sender, message.payload);
   } catch (error) {
-    console.error('failed to handle message', rawMessage, error);
+    console.error('failed to handle message', message, error);
   }
 }
 
-function handleCommand(ledger: Ledger, socket: WebSocket, participant: Party, command: Command) {
+function handleCommand(ledger: Ledger, client: QuredClient<Message>, participant: Party, command: Command) {
   let id: Id;
   let message: Message;
   if (command.type === "propose") {
@@ -155,7 +145,7 @@ function handleCommand(ledger: Ledger, socket: WebSocket, participant: Party, co
     message = { ...command };
   }
   const contract = updateLedger(ledger, false, participant, message);
-  sendMessage(socket, {
+  client.send({
     sender: participant,
     receivers: [...stakeholders(contract)],
     payload: message
@@ -260,21 +250,19 @@ if (args.clean && fs.existsSync(database)) {
 
 const ledger = Ledger(database);
 
-const socket = new WebSocket(`ws://${routerHost}`);
-
-socket.on('open', () => {
-  console.log('connected to router');
-  socket.on('ping', () => socket.pong());
-  socket.on('message', rawMessage => {
-      const json = JSON.parse(rawMessage.toString());
-      console.log('incoming message:', json);
-      handleMessage(ledger, json);
-  });
-  socket.on('close', () => {
-    process.exit(1);
-  });
-  sendMessage(socket, { login: participant });
+const client = new QuredClient<Message, Party>({
+  router: `ws://${routerHost}`,
+  login: participant,
+  partyDecoder: partyDecoder(),
+  payloadDecoder: messageDecoder(),
 });
+
+client.on("open", () => console.log(`connected to router at ${routerHost}`));
+client.on("message", message => handleMessage(ledger, message));
+client.on("error", error => {
+  console.error(error instanceof Error ? error.toString() : JSON.stringify(error));
+});
+client.on("close", () => process.exit(1));
 
 const app = express();
 app.use(express.static('ui/build'));
@@ -297,7 +285,7 @@ app.post('/api/command', (req, res) => {
   try {
     console.log('incoming command:', req.body);
     const command = commandDecoder().runWithException(req.body);
-    handleCommand(ledger, socket, participant, command);
+    handleCommand(ledger, client, participant, command);
     res.status(200).send({ success: true });
   } catch (error) {
     res.status(500).send({
