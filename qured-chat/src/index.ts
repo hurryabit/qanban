@@ -27,7 +27,7 @@ type Args = {
 }
 
 const args: Args = yargs
-  .usage('start the qanban-chat')
+  .usage('start the qured-chat')
   .version(false)
   .options({
     name: {

@@ -1,10 +1,10 @@
 {
 	"folders": [
 		{
-			"path": "router"
+			"path": "qured-router"
 		},
 		{
-			"path": "chat"
+			"path": "qured-chat"
 		},
 		{
 			"path": "types"

@@ -1,15 +1,15 @@
 {
   "private": true,
   "workspaces": [
-    "router",
-    "chat",
+    "qured-router",
+    "qured-chat",
     "types",
     "node",
     "ui"
   ],
   "scripts": {
-    "build": "yarn workspace qanban-router run build",
-    "start": "yarn run qanban-router"
+    "build": "yarn workspace qured-router run build",
+    "start": "yarn run qured-router"
   },
   "engines": {
     "node": "^13.10.1",
@@ -17,6 +17,6 @@
   },
   "cacheDirectories": [
     "node_modules",
-    "router/node_modules"
+    "qured-router/node_modules"
   ]
 }

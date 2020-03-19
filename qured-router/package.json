@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "qanban-router",
+  "name": "qured-router",
   "version": "0.0.1",
   "homepage": "https://github.com/hurryabit/qanban#readme",
   "author": "Martin Huschenbett <martin.huschenbett@posteo.me>",
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/hurryabit/qanban.git",
-    "directory": "router"
+    "directory": "qured-router"
   },
   "bin": "bin/index.js",
   "scripts": {
