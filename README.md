@@ -3,7 +3,7 @@
 A case study about a distributed kanban board.
 
 The system consists of two components:
-- `qanban-router`: A very simplistic message queue that routes messages
+- `qured-router`: A very simplistic message queue that routes messages
   between the participants of a _qanban_ network and buffers message
   while participants are offline.
 - `qanban-node`: A participant node of the _qanban_ network. Each node
@@ -27,9 +27,9 @@ at the root of the repository.
 
 ## Run
 
-To start the `qanban-router`, execute
+To start the `qured-router`, execute
 ```console
-yarn run qanban-router
+yarn run qured-router
 ```
 at the root of the repository. The router listens on the port given in the
 environment variable `PORT` and defaults to 7475 if that variable is not set.
@@ -58,7 +58,7 @@ and Carol. First, we only start the router and the nodes for Alice and
 Bob, by calling the following three commands, each in a separate terminal
 window:
 ```console
-yarn run qanban-router
+yarn run qured-router
 ```
 ```console
 yarn run qanban-node --name Alice --port 3000

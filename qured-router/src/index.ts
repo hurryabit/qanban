@@ -29,7 +29,7 @@ const properMessageDecoder = (): jtv.Decoder<ProperMessage> => jtv.object({
 const clients: { [client: string]: WebSocket | undefined } = {};
 
 const port = Number.parseInt(process.env.PORT ?? "7475");
-console.log(`binding router to port ${port}`);
+console.log(`binding qured-router to port ${port}`);
 
 const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
@@ -113,5 +113,5 @@ httpServer.on('upgrade', function upgrade(request, socket, head) {
 });
 
 httpServer.listen({port}, () => {
-  console.log('router up and running');
+  console.log('qured-router up and running');
 });
