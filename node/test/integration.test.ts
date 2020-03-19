@@ -58,9 +58,9 @@ async function submit(participant: Participant, command: Command): Promise<void>
 
 beforeAll(async () => {
   const env = {...process.env, PORT: ROUTER_PORT.toString()};
-  routerProcess = spawn('yarn', ['run', 'qanban-router'], {env, stdio: "inherit"});
+  routerProcess = spawn('yarn', ['run', 'qured-router'], {env, stdio: "inherit"});
   await waitOn({resources: [`tcp:localhost:${ROUTER_PORT}`]});
-  console.log('router up');
+  console.log('qured-router up');
 
   databaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qanban'));
 
@@ -70,7 +70,7 @@ beforeAll(async () => {
 afterAll(() => {
   if (routerProcess) {
     routerProcess.kill();
-    console.log('router down');
+    console.log('qured-router down');
   }
 
   if (databaseDir) {
