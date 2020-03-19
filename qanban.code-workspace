@@ -4,6 +4,9 @@
 			"path": "qured-router"
 		},
 		{
+			"path": "qured-client"
+		},
+		{
 			"path": "qured-chat"
 		},
 		{
