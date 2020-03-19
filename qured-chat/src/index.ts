@@ -1,25 +1,7 @@
 import * as jtv from '@mojotech/json-type-validation';
-import WebSocket from 'ws';
-import yargs from 'yargs';
 import readline from 'readline';
-
-const sendMessage = (socket: WebSocket, message: unknown) => {
-  // console.log('outgoing message:', message);
-  socket.send(JSON.stringify(message));
-}
-
-function handleMessage(rawMessage: unknown) {
-  try {
-    const { sender, receivers, payload } = jtv.object({
-      sender: jtv.string(),
-      receivers: jtv.array(jtv.string()),
-      payload: jtv.string(),
-    }).runWithException(rawMessage);
-    console.log(`@${sender} => ${receivers.map(receiver => `@${receiver}`).join(' ')}: ${payload}`);
-  } catch (error) {
-    console.error('failed to handle message', rawMessage, error);
-  }
-}
+import yargs from 'yargs';
+import QuredClient from 'qured-client';
 
 type Args = {
   name: string;
@@ -46,8 +28,6 @@ const args: Args = yargs
   .strict()
   .argv;
 
-const socket = new WebSocket(`ws://${args.router}`);
-
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -61,20 +41,28 @@ function output(printer: () => void) {
   terminal.prompt(true);
 }
 
-socket.on('open', () => {
-  console.log('connected to router');
-  socket.on('ping', () => socket.pong());
-  socket.on('message', rawMessage => output(() => {
-    const json = JSON.parse(rawMessage.toString());
-    // console.log('incoming message:', json);
-    handleMessage(json);
-  }));
-  socket.on('close', () => {
-    process.exit(1);
-  });
-  sendMessage(socket, { login: args.name });
-  terminal.prompt(true);
+const client = new QuredClient<string>({
+  router: `ws://${args.router}`,
+  login: args.name,
+  payloadDecoder: jtv.string(),
 });
+
+client.on("open", () => {
+  console.log(`connected to ${args.router}`);
+  terminal.prompt();
+});
+client.on("message", ({sender, receivers, payload}) => output(() => {
+  const line = `@${sender} => ${receivers.map(receiver => `@${receiver}`).join(' ')}: ${payload}`;
+  console.log(line);
+}));
+client.on("error", error => output(() => {
+  const line = error instanceof Error ? error.toString() : JSON.stringify(error);
+  console.error(`ERROR: ${line}`);
+}));
+client.on("close", code => output(() => {
+  console.log(`ERROR: connection closed by router with code ${code}`);
+}));
+
 
 terminal.on('line', line => {
   const receivers: string[] = [];
@@ -88,7 +76,5 @@ terminal.on('line', line => {
       line = line.slice(spaceIndex).trimLeft();
     }
   }
-  output(() => {
-    sendMessage(socket, {sender: args.name, receivers, payload: line});
-  });
+  client.send({sender: args.name, receivers, payload: line});
 });
