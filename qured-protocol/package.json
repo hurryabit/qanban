@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "qured-client",
+  "name": "qured-protocol",
   "version": "0.0.1",
   "homepage": "https://github.com/hurryabit/qanban#readme",
   "author": "Martin Huschenbett <martin.huschenbett@posteo.me>",
@@ -19,13 +19,9 @@
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
-    "@mojotech/json-type-validation": "^3.1.0",
-    "emittery": "^0.6.0",
-    "qured-protocol": "0.0.1",
-    "ws": "^7.2.3"
+    "@mojotech/json-type-validation": "^3.1.0"
   },
   "devDependencies": {
-    "@types/ws": "^7.2.2",
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0",
