@@ -1,7 +1,7 @@
 import * as jtv from '@mojotech/json-type-validation';
 import readline from 'readline';
 import yargs from 'yargs';
-import QuredClient from 'qured-client';
+import QuredClient, { PartyId } from 'qured-client';
 
 type Args = {
   name: string;
@@ -43,7 +43,7 @@ function output(printer: () => void) {
 
 const client = new QuredClient<string>({
   router: `ws://${args.router}`,
-  login: args.name,
+  login: PartyId(args.name),
   payloadDecoder: jtv.string(),
 });
 
@@ -65,16 +65,16 @@ client.on("close", code => output(() => {
 
 
 terminal.on('line', line => {
-  const receivers: string[] = [];
+  const receivers: PartyId[] = [];
   while (line.startsWith('@')) {
     const spaceIndex = line.indexOf(' ');
     if (spaceIndex === -1) {
-      receivers.push(line.slice(1));
+      receivers.push(PartyId(line.slice(1)));
       line = '';
     } else {
-      receivers.push(line.slice(1, spaceIndex));
+      receivers.push(PartyId(line.slice(1, spaceIndex)));
       line = line.slice(spaceIndex).trimLeft();
     }
   }
-  client.send({sender: args.name, receivers, payload: line});
+  client.send({sender: PartyId(args.name), receivers, payload: line});
 });

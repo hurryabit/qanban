@@ -4,17 +4,17 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import fetch from 'node-fetch';
-import { Contract, Id, idDecoder, contractDecoder, Command, CreateCommand, Party } from 'qanban-types';
+import { Contract, Id, idDecoder, contractDecoder, Command, CreateCommand, PartyId } from 'qanban-types';
 import * as jtv from '@mojotech/json-type-validation';
 
 type Participant = {
-  readonly name: Party;
+  readonly name: PartyId;
   readonly port: number;
   proc?: ChildProcess;
 }
 
-const alice: Participant = {name: 'Alice' as Party, port: 7481};
-const bob: Participant = {name: 'Bob' as Party, port: 7482};
+const alice: Participant = {name: 'Alice' as PartyId, port: 7481};
+const bob: Participant = {name: 'Bob' as PartyId, port: 7482};
 const participants = [alice, bob];
 
 const ROUTER_PORT= 7480;
