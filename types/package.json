@@ -19,7 +19,8 @@
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
-    "@mojotech/json-type-validation": "^3.1.0"
+    "@mojotech/json-type-validation": "^3.1.0",
+    "qured-protocol": "0.0.1"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^2.23.0",

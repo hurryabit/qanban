@@ -1,12 +1,12 @@
 import sqlite3 from 'better-sqlite3';
 import express from 'express';
-import { Command, commandDecoder, Contract, contractDecoder, ContractState, Id, idDecoder, Message, messageDecoder, Party, partyDecoder, UpdateMessage } from 'qanban-types';
+import { Command, commandDecoder, Contract, contractDecoder, ContractState, Id, idDecoder, Message, messageDecoder, UpdateMessage } from 'qanban-types';
 import { v4 as uuidV4 } from 'uuid';
 import yargs from 'yargs';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
-import QuredClient, { Message as QuredMessage } from 'qured-client';
+import QuredClient, { Message as QuredMessage, PartyId } from 'qured-client';
 
 type Ledger = Readonly<{
   list(): Id[];
@@ -16,15 +16,15 @@ type Ledger = Readonly<{
   update(id: Id, contract: Contract): void;
 }>
 
-function stakeholders(contract: Contract): Set<Party> {
-  const stakeholders = new Set<Party>();
+function stakeholders(contract: Contract): Set<PartyId> {
+  const stakeholders = new Set<PartyId>();
   stakeholders.add(contract.proposer);
   stakeholders.add(contract.assignee);
   contract.reviewers.forEach(reviewer => stakeholders.add(reviewer));
   return stakeholders;
 }
 
-function updateContract(contract: Contract, sender: Party, message: UpdateMessage): true {
+function updateContract(contract: Contract, sender: PartyId, message: UpdateMessage): true {
   const assertState = (state: ContractState) => {
     if (contract.state !== state) {
       throw Error(`message ${message.type} not allowed in state ${contract.state}`);
@@ -57,7 +57,7 @@ function updateContract(contract: Contract, sender: Party, message: UpdateMessag
       assertState("IN_PROGRESS");
       assertSender(sender === contract.assignee);
       contract.state = "IN_REVIEW";
-      const missingApprovals = new Set<Party>();
+      const missingApprovals = new Set<PartyId>();
       contract.reviewers.forEach(reviewer => missingApprovals.add(reviewer));
       missingApprovals.delete(sender);
       contract.missingApprovals = [...missingApprovals];
@@ -85,7 +85,7 @@ function updateContract(contract: Contract, sender: Party, message: UpdateMessag
   }
 }
 
-function updateLedger(ledger: Ledger, persist: boolean, sender: Party, message: Message): Contract {
+function updateLedger(ledger: Ledger, persist: boolean, sender: PartyId, message: Message): Contract {
   const id = message.id;
   if (message.type === "propose") {
     if (!id.startsWith(sender)) {
@@ -127,7 +127,7 @@ function updateLedger(ledger: Ledger, persist: boolean, sender: Party, message: 
   }
 }
 
-function handleMessage(ledger: Ledger, message: QuredMessage<Message, Party>) {
+function handleMessage(ledger: Ledger, message: QuredMessage<Message>) {
   try {
     updateLedger(ledger, true, message.sender, message.payload);
   } catch (error) {
@@ -135,7 +135,7 @@ function handleMessage(ledger: Ledger, message: QuredMessage<Message, Party>) {
   }
 }
 
-function handleCommand(ledger: Ledger, client: QuredClient<Message>, participant: Party, command: Command) {
+function handleCommand(ledger: Ledger, client: QuredClient<Message>, participant: PartyId, command: Command) {
   let id: Id;
   let message: Message;
   if (command.type === "propose") {
@@ -231,7 +231,7 @@ const args: Args = yargs
   .strict()
   .argv;
 
-const participant = partyDecoder().runWithException(args.name);
+const participant = PartyId(args.name);
 const uiPort = args.port;
 const routerHost = args.router;
 let database: string;
@@ -250,10 +250,9 @@ if (args.clean && fs.existsSync(database)) {
 
 const ledger = Ledger(database);
 
-const client = new QuredClient<Message, Party>({
+const client = new QuredClient<Message>({
   router: `ws://${routerHost}`,
   login: participant,
-  partyDecoder: partyDecoder(),
   payloadDecoder: messageDecoder(),
 });
 

@@ -1,6 +1,9 @@
 {
 	"folders": [
 		{
+			"path": "qured-protocol"
+		},
+		{
 			"path": "qured-router"
 		},
 		{

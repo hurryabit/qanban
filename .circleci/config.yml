@@ -13,20 +13,21 @@ jobs:
       - restore_cache:
           name: Restore cache
           keys:
-            - node-v4-{{ checksum "yarn.lock" }}
-            - node-v4-
+            - node-v5-{{ checksum "yarn.lock" }}
+            - node-v5-
             - node-
       - run:
           name: Install
           command: yarn install --frozen-lockfile
       - save_cache:
           name: Save cache
-          key: node-v4-{{ checksum "yarn.lock" }}
+          key: node-v5-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - node/node_modules
             - qured-chat/node_modules
             - qured-client/node_modules
+            - qured-protocol/node_modules
             - qured-router/node_modules
             - types/node_modules
             - ui/node_modules

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Grid, Header, Card, Button, List, SemanticICONS } from 'semantic-ui-react';
-import { Id, ContractState, Contract, Party, UpdateMessage } from 'qanban-types';
+import { Id, ContractState, Contract, PartyId, UpdateMessage } from 'qanban-types';
 import ProposalButton from './ProposalButton';
 
 type Props = {
-  participant: Party | undefined;
+  participant: PartyId;
   state: ContractState;
   contracts: { id: Id; contract: Contract }[];
   reload: () => void;
@@ -20,7 +20,7 @@ const TITLES: Record<ContractState, string> = {
 
 type Action = {
   label: string;
-  isActive(participant: Party, contract: Contract): boolean;
+  isActive(participant: PartyId, contract: Contract): boolean;
   callback(id: Id, reload: () => void): void;
 }
 
@@ -94,7 +94,7 @@ const ACTIONS: Record<ContractState, Action[]> = {
   "DONE": [],
 };
 
-const ICONS: Record<ContractState, (party: Party, contract: Contract) => SemanticICONS> = {
+const ICONS: Record<ContractState, (party: PartyId, contract: Contract) => SemanticICONS> = {
   "PROPOSED": (party, contract) =>
     contract.missingAcceptances.includes(party) ? "question circle outline" : "check circle outline",
   "ACCEPTED": (party, contract) =>
@@ -115,7 +115,7 @@ const Column: React.FC<Props> = props => {
       {contracts.map(({id, contract}) => {
         const actions = ACTIONS[props.state].filter(action =>
           props.participant !== undefined && action.isActive && action.isActive(props.participant, contract));
-        const icon = (party: Party) => ICONS[contract.state](party, contract);
+        const icon = (party: PartyId) => ICONS[contract.state](party, contract);
 
         return (
           <Card key={id}>

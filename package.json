@@ -1,6 +1,7 @@
 {
   "private": true,
   "workspaces": [
+    "qured-protocol",
     "qured-router",
     "qured-client",
     "qured-chat",

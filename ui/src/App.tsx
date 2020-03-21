@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Grid, Container, Header } from 'semantic-ui-react';
-import { Id, Contract, idDecoder, contractDecoder, allContractStates, partyDecoder, Party } from 'qanban-types';
+import { Id, Contract, idDecoder, contractDecoder, allContractStates, PartyId } from 'qanban-types';
 import * as jtv from '@mojotech/json-type-validation';
 import Column from './Column';
 
 const App: React.FC = () => {
-  const [participant, setParticipant] = useState<Party | undefined>();
+  const [participant, setParticipant] = useState<PartyId | undefined>();
   useEffect(() => {
     const load = async () => {
       const res = await fetch('/api/whoami', {
@@ -13,7 +13,7 @@ const App: React.FC = () => {
       });
       if (res.ok) {
         const text = await res.text();
-        const participant = partyDecoder().runWithException(text);
+        const participant = PartyId(text);
         setParticipant(participant);
       } else {
         console.error(`whoami failed with status ${res.status}:`, res.body);
@@ -63,9 +63,9 @@ const App: React.FC = () => {
         size="huge"
         textAlign="center"
       >
-        {participant  ?? '???'}'s Qanban Board
+        {participant ?? '???'}'s Qanban Board
       </Header>
-      <Grid columns="5" divided>
+      {participant === undefined ? null : <Grid columns="5" divided>
         {allContractStates.map(state => (
           <Column
             key={state}
@@ -75,7 +75,7 @@ const App: React.FC = () => {
             reload={reload}
           />
         ))}
-      </Grid>
+      </Grid>}
     </Container>
   );
 }
