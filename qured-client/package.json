@@ -13,9 +13,9 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "build:watch": "tsc --watch",
-    "test": "true",
+    "test": "jest",
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"
   },
   "dependencies": {
@@ -29,7 +29,15 @@
     "@typescript-eslint/eslint-plugin": "^2.23.0",
     "@typescript-eslint/parser": "^2.23.0",
     "eslint": "^6.8.0",
-    "typescript": "~3.8.3"
+    "jest": "^25.1.0",
+    "p-event": "^4.1.0",
+    "ts-jest": "^25.2.1",
+    "typescript": "~3.8.3",
+    "wait-on": "^4.0.1"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
   },
   "eslintConfig": {
     "extends": [

@@ -24,12 +24,12 @@ jobs:
           key: node-v5-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
-            - node/node_modules
-            - qured-chat/node_modules
-            - qured-client/node_modules
             - qured-protocol/node_modules
             - qured-router/node_modules
+            - qured-client/node_modules
+            - qured-chat/node_modules
             - types/node_modules
+            - node/node_modules
             - ui/node_modules
       - run:
           name: Build
