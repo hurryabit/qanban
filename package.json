@@ -10,7 +10,7 @@
     "ui"
   ],
   "scripts": {
-    "build": "yarn workspace qured-router run build",
+    "build": "yarn workspace qured-protocol run build && yarn workspace qured-router run build",
     "start": "yarn run qured-router"
   },
   "engines": {
@@ -19,6 +19,7 @@
   },
   "cacheDirectories": [
     "node_modules",
+    "qured-protocol/node_modules"
     "qured-router/node_modules"
   ]
 }
