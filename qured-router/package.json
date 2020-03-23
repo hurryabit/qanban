@@ -22,6 +22,7 @@
     "@mojotech/json-type-validation": "^3.1.0",
     "ioredis": "^4.16.0",
     "node": "^13.10.1",
+    "qured-protocol": "0.0.1",
     "ws": "^7.2.3"
   },
   "devDependencies": {
