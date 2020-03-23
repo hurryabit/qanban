@@ -3,28 +3,19 @@ import http from 'http';
 import url from 'url';
 import * as jtv from '@mojotech/json-type-validation';
 import Redis from 'ioredis';
+import { Message, PartyId } from 'qured-protocol';
 
 type LoginMessage = {
-  login: string;
+  login: PartyId;
 }
 
-type ProperMessage = {
-  sender: string;
-  receivers: string[];
-  payload: unknown;
+const LoginMessage = {
+  decoder: (): jtv.Decoder<LoginMessage> => jtv.object({
+    login: PartyId.decoder(),
+  }),
 }
 
 const PING_INTERVAL = 5_000;
-
-const loginMessageDecoder = (): jtv.Decoder<LoginMessage> => jtv.object({
-  login: jtv.string()
-});
-
-const properMessageDecoder = (): jtv.Decoder<ProperMessage> => jtv.object({
-  sender: jtv.string(),
-  receivers: jtv.array(jtv.string()),
-  payload: jtv.unknownJson(),
-});
 
 const clients: { [client: string]: WebSocket | undefined } = {};
 
@@ -55,7 +46,7 @@ wsServer.on('connection', (socket, initialMessage) => {
       const rawMessage = data.toString();
       const json = JSON.parse(rawMessage);
       if (participant === undefined) {
-        const loginMessage = loginMessageDecoder().runWithException(json);
+        const loginMessage = LoginMessage.decoder().runWithException(json);
         participant = loginMessage.login;
         if (participant in clients) {
           throw Error(`User ${participant} is already connected.`);
@@ -68,7 +59,7 @@ wsServer.on('connection', (socket, initialMessage) => {
         }
         clients[participant] = socket;
       } else {
-        const properMessage = properMessageDecoder().runWithException(json);
+        const properMessage = Message.decoder(jtv.unknownJson()).runWithException(json);
         if (properMessage.sender !== participant) {
           throw Error(`Sender ${properMessage.sender} does not match participant ${participant}.`);
         }

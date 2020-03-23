@@ -21,5 +21,11 @@
 		{
 			"path": "ui"
 		},
-	]
+	],
+	"settings": {
+		"files.exclude": {
+			"**/lib": true,
+			"**/node_modules": true
+		}
+	}
 }
