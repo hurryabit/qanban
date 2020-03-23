@@ -2,7 +2,7 @@ pull_request_rules:
   - name: Squash merge hurryabit's PRs once CI has passed
     conditions:
       - "author=hurryabit"
-      - "status-success=ci/circleci: build"
+      - "status-success=Travis CI - Pull Request"
     actions:
       merge:
         method: squash
