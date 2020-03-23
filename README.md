@@ -1,5 +1,7 @@
 # qanban
 
+[![Build Status](https://travis-ci.com/hurryabit/qanban.svg?branch=master)](https://travis-ci.com/hurryabit/qanban)
+
 A case study about a distributed kanban board.
 
 The system consists of two components:

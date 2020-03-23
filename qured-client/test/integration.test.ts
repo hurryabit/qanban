@@ -3,7 +3,7 @@ import waitOn from 'wait-on';
 import pEvent from 'p-event';
 import QuredClient, { PartyId, Message } from '../src';
 
-const ROUTER_PORT= 7480;
+const ROUTER_PORT= 7475;
 const router = `ws://localhost:${ROUTER_PORT}`;
 let routerProcess: ChildProcess | undefined = undefined;
 

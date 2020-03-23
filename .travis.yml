@@ -1,0 +1,15 @@
+dist: bionic
+language: node_js
+node_js: 13
+cache: yarn
+
+services:
+  - redis-server
+
+install:
+  - yarn install --frozen-lockfile
+
+script:
+  - yarn workspaces run build
+  - yarn workspaces run lint
+  - yarn workspaces run test
