@@ -13,7 +13,7 @@
   "bin": "bin/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc --build",
+    "build": "tsc",
     "build:watch": "tsc --build --watch",
     "test": "true",
     "lint": "eslint --ext .js,.ts --max-warnings 0 src/"

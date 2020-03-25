@@ -251,7 +251,7 @@ if (args.clean && fs.existsSync(database)) {
 const ledger = Ledger(database);
 
 const client = new QuredClient<Message>({
-  router: `ws://${routerHost}`,
+  router: `ws://${routerHost}/qanban`,
   login: participant,
   payloadDecoder: messageDecoder(),
 });
