@@ -42,7 +42,7 @@ function output(printer: () => void) {
 }
 
 const client = new QuredClient<string>({
-  router: `ws://${args.router}`,
+  router: `ws://${args.router}/chat`,
   login: PartyId(args.name),
   payloadDecoder: jtv.string(),
 });

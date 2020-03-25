@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import http from 'http';
-import url from 'url';
+import liburl from 'url';
 import * as jtv from '@mojotech/json-type-validation';
 import Redis from 'ioredis';
 import { Message, PartyId } from 'qured-protocol';
@@ -17,10 +17,22 @@ const LoginMessage = {
 
 const PING_INTERVAL = 5_000;
 
-const clients: { [client: string]: WebSocket | undefined } = {};
+const apps: { [appName: string]: { [login: string]: WebSocket | undefined } } = {};
 
 const port = Number.parseInt(process.env.PORT ?? "7475");
 console.log(`binding qured-router to port ${port}`);
+
+function getAppName(url: string): string | undefined {
+  const pathname = liburl.parse(url).pathname;
+  if (pathname === null || !/^\/[A-Za-z0-9-]{4,32}$/.test(pathname)) {
+    return undefined;
+  }
+  return pathname.slice(1);
+}
+
+function queueKey(config: {appName: string; party: PartyId}): string {
+  return `queue:${config.appName}:${config.party}`;
+}
 
 const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
 
@@ -30,9 +42,20 @@ const httpServer = http.createServer((_req, res) => {
 const wsServer = new WebSocket.Server({noServer: true});
 
 wsServer.on('connection', (socket, initialMessage) => {
-  console.log('new connection', initialMessage.headers);
+  if (initialMessage.url === undefined) {
+    throw Error('new connction without url');
+  }
+  const appName = getAppName(initialMessage.url);
+  if (appName === undefined) {
+    throw Error(`new connection with invalid url ${initialMessage.url}`);
+  }
+  console.log(`new connection with ${appName}`, initialMessage.headers);
+  if (!(appName in apps)) {
+    apps[appName] = {};
+  }
+  const clients = apps[appName];
   const address = JSON.stringify(initialMessage.headers);
-  let participant: string | undefined = undefined;
+  let participant: PartyId | undefined = undefined;
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   socket.on('message', async data => {
     // FIXME(MH): This code is full of concurrency bugs. For instance:
@@ -53,7 +76,7 @@ wsServer.on('connection', (socket, initialMessage) => {
         }
         clients[participant] = undefined;
         let queuedRawMessage;
-        while ((queuedRawMessage = await redis.rpop(`queue:${participant}`)) !== null) {
+        while ((queuedRawMessage = await redis.rpop(queueKey({appName, party: participant}))) !== null) {
           console.log(`redis: ${queuedRawMessage}`);
           socket.send(queuedRawMessage);
         }
@@ -67,7 +90,7 @@ wsServer.on('connection', (socket, initialMessage) => {
           const client = clients[receiver];
           if (client === undefined) {
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            redis.lpush(`queue:${receiver}`, rawMessage);
+            redis.lpush(queueKey({appName, party: receiver}), rawMessage);
           } else {
             client.send(rawMessage);
           }
@@ -92,9 +115,7 @@ wsServer.on('connection', (socket, initialMessage) => {
 });
 
 httpServer.on('upgrade', function upgrade(request, socket, head) {
-  const pathname = url.parse(request.url).pathname;
-
-  if (pathname === '/') {
+  if (getAppName(request.url) !== undefined) {
     wsServer.handleUpgrade(request, socket, head, ws => {
       wsServer.emit('connection', ws, request);
     });

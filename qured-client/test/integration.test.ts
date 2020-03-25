@@ -4,7 +4,7 @@ import pEvent from 'p-event';
 import QuredClient, { PartyId, Message } from '../src';
 
 const ROUTER_PORT= 7475;
-const router = `ws://localhost:${ROUTER_PORT}`;
+const router = `ws://localhost:${ROUTER_PORT}/test`;
 let routerProcess: ChildProcess | undefined = undefined;
 
 beforeAll(async () => {
